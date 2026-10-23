@@ -216,7 +216,7 @@ button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
       <p>你趴在电脑前睡着的那一小会儿，我们都来过了。蛋糕是真的，蜡烛是真的，大家唱的歌也是真的。</p>
       <p>不管你在地球的哪一边，那边是春天还是秋天，累了就闭上眼睛，我们就在。</p>
       <p>新的一岁，也要被好好爱着。</p>
-      <div class="sign">花花 · 媛媛 · 默默 · 小猫 · NoNo · 蟹黄堡 · 茶茶<br>10 月 23 日</div>
+      <div class="sign">花花 · 媛媛 · 默默 · 小猫 · None · 蟹黄堡 · 茶茶<br>10 月 23 日</div>
     </div>
     <button id="again" type="button">再玩一次</button>
   </div>
@@ -277,7 +277,7 @@ const WISHES = {
   xhb:      ["晨钰生日快乐！我和茶茶商量了一整个晚上要说什么——", "祝你天天开心，吃好睡好，加班少一点，假期多一点！"],
   chacha:   ["[脸红]（用肩膀碰了碰蟹黄堡）还有，", "希望你也一直被人好好地喜欢着，就像我们这样。生日快乐呀。"],
 };
-const NAMES = { huahua: "花花", yuanyuan: "媛媛", momo: "默默", xiaomao: "小猫", nono: "NoNo", xhb: "蟹黄堡", chacha: "茶茶" };
+const NAMES = { huahua: "花花", yuanyuan: "媛媛", momo: "默默", xiaomao: "小猫", nono: "None", xhb: "蟹黄堡", chacha: "茶茶" };
 
 const $ = s => document.querySelector(s);
 // scale the whole console to the window, keeping a gap around it
@@ -1039,7 +1039,7 @@ const ACT = {
     Object.assign(E.nono, { visible: true, x: np[0], y: np[1] }); face(me, E.nono);
     burst("conf", 24, 980, 520); sfx.get();
     await say("nono", "[惊讶]No！！你怎么找到我的！");
-    await say("nono", "[生气]我是 NoNo！本来想让你找半天的……", true);
+    await say("nono", "[生气]我是 None！本来想让你找半天的……", true);
     await say("nono", "No，算了，生日快乐优先！");
     await bless("nono"); await giveCandle("nono");
   },
@@ -1073,7 +1073,7 @@ async function couple(who) {
     await say("xhb", "[生气]我们正在吵架！蛋糕旁边要放花，还是放草莓？");
     await say("chacha", "[平静]要放花。");
     await say("xhb", "[大笑]那就放花！（秒答）");
-    await say("chacha", "[哭泣]……可是我们俩都不敢离开蛋糕，怕 NoNo 和小猫来偷吃。");
+    await say("chacha", "[哭泣]……可是我们俩都不敢离开蛋糕，怕 None 和小猫来偷吃。");
     return say("xhb", "你能帮我们摘三朵花吗？院子里会发光的那几朵！");
   }
   if (S.flowers < 3) return say(other, `还差 ${3 - S.flowers} 朵～发光的那种！`);
@@ -1202,7 +1202,7 @@ async function finale() {
   await say("huahua", "蜡烛点好啦！那我们开始唱啦——");
   await sing();
   await say("yuanyuan", "[脸红]该许愿啦。闭上眼睛，我们不偷看。");
-  await say("xiaomao", "NoNo，你转过去！");
+  await say("xiaomao", "None，你转过去！");
   await say("nono", "[生气]No！……好吧。");
   $("#wish").hidden = false; idle("……");
   await new Promise(r => $("#wish-done").onclick = r);
@@ -1324,7 +1324,7 @@ function partyTick(dt) {
     if (map === "garden" && Math.random() < dt / 1400) burst("heart", 1, (hh.x + yy.x) / 2, hh.y - 66);
   } else if (steer(hh, ...WALK[P.wp], .07, dt)) { P.wp = (P.wp + 1) % WALK.length; P.wait = 1800 + Math.random() * 2500; }
   if (!followHuahua(yy, dt)) yy.dir = hh.moving ? hh.dir : dirOf(hh.x - yy.x, hh.y - yy.y);
-  // NoNo：对晨钰很好奇，一直跟在她后面
+  // None：对晨钰很好奇，一直跟在她后面
   const nn = E.nono;
   if (nn.map === map) {
     const d = Math.hypot(nn.x - me.x, nn.y - me.y);
@@ -1376,7 +1376,7 @@ function drawPartyProps() {
 const CARE = {
   huahua: ["[开心]工作很重要，可是你更重要。这句要记住哦。", "[撒娇]下次累了不要硬撑。闭上眼睛，我就来接你。", "[爱心眼]你知道吗，你笑起来的时候尾巴也会一起摇。好可爱。", "[平静]地球那么大。可是想你的时候，就觉得没有很远。", "[大笑]新的一岁，要吃很多好吃的！阿根廷的烤肉！"],
   yuanyuan: ["[脸红]……晨钰，你要按时吃饭。", "[撒娇]晚上不要熬太晚。……我会担心。", "[开心]今天的你看起来很开心。我也很开心。", "[平静]要是有不开心的事，可以小声告诉我。我不会说出去的。", "[脸红]……我也想像花花那样，给你一个抱抱。可以吗？"],
-  nono: ["[生气]No！我才没有跟着你！我只是刚好也往这边走。", "[撒娇]……你身上有奶油的味道。好香。", "[脸红]No……你走慢一点嘛，我腿短。", "[爱心眼]寿星今天是全院子最好看的萨摩耶。No，是全世界。", "[开心]No 想你的时候，就去箱子里坐一会儿。箱子里很暖和，像你。", "[哭泣]……你醒了以后，还会记得 NoNo 吗？一定要记得哦。"],
+  nono: ["[生气]No！我才没有跟着你！我只是刚好也往这边走。", "[撒娇]……你身上有奶油的味道。好香。", "[脸红]No……你走慢一点嘛，我腿短。", "[爱心眼]寿星今天是全院子最好看的萨摩耶。No，是全世界。", "[开心]No 想你的时候，就去箱子里坐一会儿。箱子里很暖和，像你。", "[哭泣]……你醒了以后，还会记得 None 吗？一定要记得哦。"],
   xiaomao: ["[大笑]下次来我请你吃小鱼干！……不对，你是狗。那请你吃骨头！", "[撒娇]新的一岁，想做什么就去做！我给你加油！", "[生气]在那边要是有人欺负你，告诉我，我去挠他！", "[爱心眼]今天的蝴蝶结，是专门为你戴的哦。"],
   momo: ["[平静]……累了的话，发呆也可以。什么都不想，也可以。", "[开心]……天上有一颗星星，在阿根廷那边也看得到。", "[脸红]……生日快乐。……再说一遍，生日快乐。", "[平静]……慢慢来。你已经做得很好了。"],
   xhb: ["[大笑]祝你新的一岁钱多多，班少少！", "[开心]我和茶茶会把院子收拾好，等你下次再来！", "[爱心眼]你知道吗，茶茶说你是她见过最温柔的萨摩耶。"],
@@ -1415,7 +1415,7 @@ const PARTY = {
       await say("yuanyuan", "[脸红]……我没有说。");
       return say("huahua", "[撒娇]那就是我想背她。");
     }
-    if (S.pt.huahua === 2) return say("huahua", "[开心]你也去玩吧！NoNo 好像一直跟着你哦。");
+    if (S.pt.huahua === 2) return say("huahua", "[开心]你也去玩吧！None 好像一直跟着你哦。");
     return care("huahua");
   },
   async yuanyuan() {
@@ -1438,7 +1438,7 @@ const PARTY = {
       await say("xiaomao", "[惊讶]你、你天胡？！");
       return say("xiaomao", "[大笑]寿星手气果然不一样！再来一圈！");
     }
-    return say("xiaomao", "[撒娇]那你帮我看着牌！不许告诉 NoNo 我手里有什么！");
+    return say("xiaomao", "[撒娇]那你帮我看着牌！不许告诉 None 我手里有什么！");
   },
   async momo() {
     if (S.pt.mm) return care("momo");
