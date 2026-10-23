@@ -28,6 +28,7 @@
   color-scheme: dark;
 }
 html, body { height: 100%; }
+html { background: var(--shell); }
 [hidden] { display: none !important; }
 body { background: var(--shell); color: var(--text); font-family: var(--body); overflow: hidden; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; touch-action: manipulation; overscroll-behavior: none; }
 /* the whole console is laid out at a fixed size and scaled as one piece to fit the window (see fit()) */
@@ -289,7 +290,11 @@ function fit() {
   const W = land ? 1280 : 420, H = land ? 618 : 728, m = Math.max(10, Math.min(vw, vh) * .03);
   app.style.setProperty("--k", Math.min((vw - 2 * m) / W, (vh - 2 * m) / H));
 }
-fit(); addEventListener("resize", fit); document.addEventListener("fullscreenchange", () => setTimeout(fit, 60));
+// refit a few times: entering/leaving full screen or rotating settles over several frames on some browsers
+const refit = () => { fit(); setTimeout(fit, 120); setTimeout(fit, 450); };
+fit(); addEventListener("resize", refit); addEventListener("orientationchange", refit);
+document.addEventListener("fullscreenchange", refit); document.addEventListener("webkitfullscreenchange", refit);
+if (window.visualViewport) visualViewport.addEventListener("resize", refit);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const store = { get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
