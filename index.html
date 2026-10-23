@@ -1,0 +1,1571 @@
+<title>晨钰的生日盒子</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Noto+Sans+SC:wght@400;500;700&display=swap">
+<style>
+/* Layout: a handheld — game screen on top, dialogue window under it, D-pad + A at the bottom; in landscape the pad splits to the sides */
+:root {
+  --shell: #2a2433;
+  --shell-hi: #3a3246;
+  --win: #fff8ea;
+  --win-ink: #3a2e25;
+  --edge: #2b2230;
+  --gold: #f6b94a;
+  --text: #fbf3e4;
+  --muted: #b9adc4;
+  --btn: #e8607a;
+  --tag: #f2a7b0;
+  --cream: #fdf3dc;
+  --display: "ZCOOL KuaiLe", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --body: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+[hidden] { display: none !important; }
+body { background: var(--shell); color: var(--text); font-family: var(--body); overflow: hidden; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; touch-action: manipulation; overscroll-behavior: none; }
+/* the whole console is laid out at a fixed size and scaled as one piece to fit the window (see fit()) */
+#app { position: absolute; left: 50%; top: 50%; width: 420px; height: 728px; transform: translate(-50%, -50%) scale(var(--k, 1)); display: flex; flex-direction: column; gap: 10px; padding: 12px; box-sizing: border-box; background: var(--shell); }
+button { font: inherit; cursor: pointer; color: inherit; }
+button:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+
+/* ---------- screen ---------- */
+#screen { position: relative; width: 100%; aspect-ratio: 8 / 5; margin: 0 auto; flex: none; border-radius: 10px; overflow: hidden; box-shadow: 0 0 0 3px var(--edge), 0 0 0 6px var(--shell-hi); background: #141a2e; }
+#game { width: 100%; height: 100%; display: block; touch-action: none; }
+#game.blur { filter: blur(7px) brightness(.9); }
+.chip { font-size: 12px; background: var(--win); color: var(--win-ink); border: 2px solid var(--edge); border-radius: 999px; padding: 2px 10px; z-index: 9; }
+#hud { font-family: var(--display); font-size: 15px; padding: 1px 10px 1px 8px; display: flex; align-items: center; gap: 6px; pointer-events: none; }
+#hud i { display: inline-block; width: 5px; height: 13px; border-radius: 2px; background: linear-gradient(#f6b94a 0 30%, #f2a7b0 30% 100%); }
+/* status bar above the game screen: candles on the left, volume + fullscreen on the right */
+#status { position: relative; flex: none; height: 28px; display: flex; align-items: center; z-index: 12; }
+#tools { margin-left: auto; display: flex; gap: 6px; }
+#tools .chip { position: static; }
+#volpanel { position: absolute; top: 34px; right: 0; z-index: 12; background: var(--win); color: var(--win-ink); border: 2px solid var(--edge); border-radius: 12px; padding: 8px 12px; display: flex; align-items: center; gap: 8px; font-size: 13px; }
+#vol { width: 150px; height: 30px; accent-color: var(--btn); touch-action: none; }
+#volpanel .vb { width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--edge); background: var(--btn); color: #fff; font-size: 18px; line-height: 1; padding: 0; touch-action: manipulation; }
+#volpanel .vb:active { transform: translateY(1px); }
+#volv { min-width: 2.2em; text-align: right; }
+#caption { position: absolute; left: 0; right: 0; top: 7%; text-align: center; color: var(--text); text-shadow: 0 2px 6px rgba(0,0,0,.8); pointer-events: none; line-height: 1.6; padding-inline: 12px; }
+#caption .big { font-family: var(--display); font-size: 28px; color: #ffe2a0; }
+#caption .small { font-size: 12px; color: #d8d2e8; letter-spacing: .1em; }
+#blink { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
+.lid { position: absolute; left: -10%; right: -10%; height: 51%; background: #07060c; transition: transform .45s ease-in-out; }
+.lid.top { top: 0; border-radius: 0 0 50% 50% / 0 0 30% 30%; }
+.lid.bot { bottom: 0; border-radius: 50% 50% 0 0 / 30% 30% 0 0; }
+#whisper { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); text-align: center; color: var(--muted); font-size: 14px; z-index: 2; padding-inline: 20px; transition: opacity .4s; white-space: pre-line; }
+#cg { position: absolute; inset: 0; z-index: 4; opacity: 0; transition: opacity .8s; pointer-events: none; background: #000; }
+#cg img { width: 100%; height: 100%; object-fit: cover; display: block; }
+#fade, #flash { position: absolute; inset: 0; opacity: 0; pointer-events: none; transition: opacity .6s; z-index: 6; }
+#fade { background: #000; } #flash { background: #fff; transition-duration: 1s; }
+.on { opacity: 1 !important; }
+#lyric { position: absolute; left: 0; right: 0; bottom: 4%; text-align: center; font-family: var(--display); font-size: 28px; color: #fff; text-shadow: 0 2px 0 var(--edge), 0 0 12px rgba(0,0,0,.5); pointer-events: none; z-index: 4; }
+#wish { position: absolute; inset: 0; z-index: 7; background: rgba(12,10,22,.86); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding-inline: 16px; text-align: center; }
+#wish p { margin: 0; font-family: var(--display); color: #ffe2a0; font-size: 20px; }
+#wish label { font-size: 13px; color: var(--muted); }
+#wish-input { width: 100%; max-width: 320px; background: #1d1830; color: var(--text); border: 2px solid var(--text); border-radius: 10px; padding: 8px 10px; font: inherit; font-size: 16px; resize: none; user-select: text; -webkit-user-select: text; box-sizing: border-box; }
+#wish-done { font-family: var(--display); background: var(--gold); color: var(--edge); border: 2px solid var(--edge); border-radius: 999px; padding: 4px 20px; font-size: 16px; }
+
+/* ---------- dialogue window ---------- */
+#dlg { position: relative; flex: none; min-height: 150px; margin-top: 10px; background: var(--win); color: var(--win-ink); border: 3px solid var(--edge); border-radius: 14px; box-shadow: 0 5px 0 var(--edge); padding: 14px 14px 12px; display: flex; gap: 12px; cursor: pointer; box-sizing: border-box; }
+#dlg-name { position: absolute; top: -15px; left: 14px; font-family: var(--display); font-size: 15px; background: var(--tag); color: var(--edge); border: 2px solid var(--edge); border-radius: 999px; padding: 0 12px; }
+#dlg-name.unknown { background: #d8d2e8; }
+#dlg-name.pop { animation: pop .5s; }
+@keyframes pop { 40% { transform: scale(1.25); } }
+#face { flex: none; width: 60px; height: 60px; border-radius: 10px; background: #f3e2c4; border: 2px solid var(--edge); }
+#dlg-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+#dlg-text { font-size: 16px; line-height: 1.7; white-space: pre-line; }
+#dlg-text.narr { color: #6d5f53; }
+#dlg-text.idle { color: #8a7c70; font-size: 14px; }
+#dlg-more { position: absolute; right: 12px; bottom: 6px; color: #c0504a; font-size: 12px; opacity: 0; }
+#dlg.ready #dlg-more { opacity: 1; animation: nudge .8s infinite; }
+@keyframes nudge { 50% { transform: translateY(3px); } }
+#choices { display: flex; flex-direction: column; gap: 4px; }
+#choices button { text-align: left; background: none; border: 0; border-radius: 8px; padding: 6px 8px 6px 22px; position: relative; font-size: 15px; color: var(--win-ink); }
+#choices button.sel { background: #f6e3c2; }
+#choices button.sel::before { content: "▶"; position: absolute; left: 6px; font-size: 10px; top: 11px; color: #c0504a; }
+#holdbar { height: 12px; border: 2px solid var(--edge); border-radius: 999px; background: #f3e2c4; overflow: hidden; }
+#holdbar div { height: 100%; width: 0; background: var(--btn); }
+
+/* ---------- controls ---------- */
+#pad { flex: 1; min-height: 110px; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-inline: 6px; }
+#dpad { position: relative; width: 132px; height: 132px; flex: none; }
+#dpad button { position: absolute; width: 44px; height: 44px; background: var(--shell-hi); border: 0; box-shadow: 0 4px 0 #151119; color: var(--muted); font-size: 16px; touch-action: none; }
+#dpad button.held { transform: translateY(3px); box-shadow: 0 1px 0 #151119; color: var(--gold); }
+#dpad .u { left: 44px; top: 0; border-radius: 8px 8px 0 0; }
+#dpad .d { left: 44px; top: 88px; border-radius: 0 0 8px 8px; }
+#dpad .l { left: 0; top: 44px; border-radius: 8px 0 0 8px; }
+#dpad .r { left: 88px; top: 44px; border-radius: 0 8px 8px 0; }
+#dpad .c { left: 44px; top: 44px; width: 44px; height: 44px; position: absolute; background: var(--shell-hi); }
+#abtn { width: 78px; height: 78px; border-radius: 50%; border: 0; background: var(--btn); box-shadow: 0 6px 0 #9c3049; font-family: var(--display); font-size: 28px; color: #fff; touch-action: none; flex: none; }
+#abtn.held { transform: translateY(4px); box-shadow: 0 2px 0 #9c3049; }
+.keys { font-size: 11px; color: var(--muted); text-align: center; line-height: 1.6; min-width: 0; }
+
+/* wide windows (landscape phones, desktop, fullscreen): big game screen in the middle, a compact dialogue window right under it (never over the picture), big pad and A on the sides */
+#app.land { width: 1280px; height: 618px; padding: 14px 20px; display: grid; grid-template-columns: 290px 640px 290px; grid-template-rows: 30px 400px 1fr; grid-template-areas: "dpad status abtn" "dpad screen abtn" "dpad dlg abtn"; gap: 8px 0; }
+#app.land #status { grid-area: status; }
+#app.land #screen { grid-area: screen; width: 640px; height: 400px; }
+#app.land #dlg { grid-area: dlg; margin: 18px 0 0; min-height: 0; padding: 10px 14px 8px; gap: 10px; }
+#app.land #dlg-text { font-size: 17px; line-height: 1.5; }
+#app.land #dlg-text.idle { font-size: 14px; line-height: 1.5; }
+#app.land #dlg-body { gap: 2px; }
+#app.land #choices { gap: 0; }
+#app.land #choices button { font-size: 16px; padding-block: 2px; }
+#app.land #choices button.sel::before { top: 7px; }
+#app.land #face { width: 52px; height: 52px; }
+#app.land #dlg-name { top: -13px; font-size: 14px; }
+#app.land #pad { display: contents; }
+#app.land #dpad { grid-area: dpad; align-self: center; justify-self: start; margin-left: 40px; transform: scale(1.5); }
+#app.land #abtn { grid-area: abtn; align-self: center; justify-self: end; margin-right: 30px; width: 124px; height: 124px; font-size: 46px; box-shadow: 0 8px 0 #9c3049; }
+#app.land #abtn.held { box-shadow: 0 3px 0 #9c3049; }
+#app.land .keys { display: none; }
+#app.land #open { gap: 6px; }
+#app.land #giftbox { width: 230px; margin-top: 56px; }
+/* ---------- opening: the gift box ---------- */
+#open { position: absolute; inset: 0; z-index: 30; background: radial-gradient(circle at 50% 45%, #fff6e2, #f6dcc0 70%); color: var(--win-ink); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding-inline: 16px; text-align: center; transition: opacity .7s; }
+#open .sub { font-size: 14px; color: #8a6b4f; }
+#giftbox { width: 280px; margin-top: 64px; background: none; border: 0; padding: 0; }
+#giftbox svg { width: 100%; overflow: visible; display: block; }
+#giftbox.shake { animation: shake .5s; }
+@keyframes shake { 20% { transform: rotate(-6deg); } 40% { transform: rotate(5deg); } 60% { transform: rotate(-3deg); } 80% { transform: rotate(2deg); } }
+#lidg { transition: transform .8s cubic-bezier(.3,1.6,.5,1); transform-origin: 140px 100px; }
+#giftbox.open #lidg { transform: translate(136px, 58px) rotate(78deg) scale(.7); }
+#console { transform: translateY(70px) scale(.6); opacity: 0; transition: transform .9s cubic-bezier(.3,1.5,.5,1) .25s, opacity .3s .25s; transform-origin: 140px 150px; }
+#giftbox.open #console { transform: translateY(-62px) scale(1); opacity: 1; }
+#glow { opacity: 0; transition: opacity .6s; }
+#giftbox.open #glow { opacity: 1; }
+#open .hint { font-size: 15px; color: #c0504a; min-height: 1.4em; }
+#play { font-family: var(--display); font-size: 20px; background: var(--btn); color: #fff; border: 3px solid var(--edge); border-radius: 999px; padding: 6px 30px; box-shadow: 0 5px 0 var(--edge); }
+#play:active { transform: translateY(3px); box-shadow: 0 2px 0 var(--edge); }
+/* ---------- ending letter ---------- */
+#end { position: absolute; inset: 0; z-index: 20; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding-inline: 16px; background: rgba(20,16,30,.82); }
+.letter { background: var(--win); color: var(--win-ink); border: 3px solid var(--edge); border-radius: 14px; box-shadow: 0 6px 0 var(--edge); padding: 16px 18px; max-width: 380px; font-size: 15px; line-height: 1.85; max-height: 78%; overflow: auto; box-sizing: border-box; }
+.letter h2 { font-family: var(--display); font-weight: 400; font-size: 22px; margin: 0 0 6px; color: #c0504a; }
+.letter p { margin: 0 0 6px; }
+.letter .sign { text-align: right; color: #8a6b4f; font-size: 13px; }
+#again { font-family: var(--display); background: var(--win); color: var(--edge); border: 2px solid var(--edge); border-radius: 999px; padding: 4px 16px; font-size: 15px; }
+
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition-duration: .01ms !important; } }
+</style>
+
+<div id="app">
+  <div id="status">
+      <div class="chip" id="hud" hidden><i></i><span id="hud-n">0 / 7</span></div>
+      <div id="tools">
+        <button class="chip" id="volbtn" type="button" aria-expanded="false">♪ 音量</button>
+        <button class="chip" id="fsbtn" type="button">⛶ 全屏</button>
+      </div>
+      <div id="volpanel" hidden>
+        <label for="vol">音乐</label>
+        <button class="vb" id="voldn" type="button" aria-label="小声一点">－</button>
+        <input id="vol" type="range" min="0" max="100" step="5" value="50">
+        <button class="vb" id="volup" type="button" aria-label="大声一点">＋</button>
+        <span id="volv">50</span>
+      </div>
+  </div>
+  <div id="screen">
+    <canvas id="game"></canvas>
+    <div id="caption"></div>
+    <div id="lyric" aria-live="polite"></div>
+    <div id="cg"><img id="cgimg" alt=""></div>
+    <div id="blink" hidden>
+      <div class="lid top" id="lid-top"></div>
+      <div class="lid bot" id="lid-bot"></div>
+      <div id="whisper"></div>
+    </div>
+    <div id="wish" hidden>
+      <p>闭上眼睛，许个愿吧</p>
+      <label for="wish-input">写下来也可以，只在心里想也可以。没有人会看到。</label>
+      <textarea id="wish-input" rows="3" placeholder="我希望……"></textarea>
+      <button id="wish-done" type="button">许好啦</button>
+    </div>
+    <div id="fade"></div>
+    <div id="flash"></div>
+  </div>
+
+  <div id="dlg" role="button" tabindex="0" aria-live="polite">
+    <div id="dlg-name" hidden></div>
+    <canvas id="face" width="240" height="240" hidden></canvas>
+    <div id="dlg-body">
+      <div id="dlg-text">加载中……</div>
+      <div id="choices" hidden></div>
+      <div id="holdbar" hidden><div></div></div>
+    </div>
+    <div id="dlg-more">▼</div>
+  </div>
+
+  <div id="pad">
+    <div id="dpad" aria-label="方向键">
+      <button class="u" data-dir="up" type="button" aria-label="上">▲</button>
+      <button class="l" data-dir="left" type="button" aria-label="左">◀</button>
+      <span class="c"></span>
+      <button class="r" data-dir="right" type="button" aria-label="右">▶</button>
+      <button class="d" data-dir="down" type="button" aria-label="下">▼</button>
+    </div>
+    <div class="keys">点地面也能走过去<br>方向键 / WASD 走路<br>空格 / Enter = A</div>
+    <button id="abtn" type="button" aria-label="A 键">A</button>
+  </div>
+
+  <div id="end" hidden>
+    <div class="letter">
+      <h2>晨钰，生日快乐！</h2>
+      <p>今天也辛苦啦。</p>
+      <p>你趴在电脑前睡着的那一小会儿，我们都来过了。蛋糕是真的，蜡烛是真的，大家唱的歌也是真的。</p>
+      <p>不管你在地球的哪一边，那边是春天还是秋天，累了就闭上眼睛，我们就在。</p>
+      <p>新的一岁，也要被好好爱着。</p>
+      <div class="sign">花花 · 媛媛 · 默默 · 小猫 · NoNo · 蟹黄堡 · 茶茶<br>10 月 23 日</div>
+    </div>
+    <button id="again" type="button">再玩一次</button>
+  </div>
+
+  <div id="open">
+    <div class="sub">10 月 23 日 · 寄往阿根廷</div>
+    <button id="giftbox" type="button" aria-label="打开礼物盒">
+      <svg viewBox="0 0 280 260">
+        <g id="glow"><circle cx="140" cy="110" r="90" fill="#fff4c8" opacity=".75"/><circle cx="140" cy="110" r="60" fill="#fffbe6"/></g>
+        <g id="console">
+          <!-- a cream retro handheld -->
+          <path d="M98 26 h84 a10 10 0 0 1 10 10 v120 a32 32 0 0 1 -32 32 h-62 a10 10 0 0 1 -10 -10 v-142 a10 10 0 0 1 10 -10z" fill="#efe8d8" stroke="#2b2230" stroke-width="5"/>
+          <path d="M100 38 h80 a6 6 0 0 1 6 6 v50 a14 14 0 0 1 -14 14 h-72 a6 6 0 0 1 -6 -6 v-58 a6 6 0 0 1 6 -6z" fill="#6c6f88" stroke="#2b2230" stroke-width="3"/>
+          <circle cx="104" cy="66" r="2.6" fill="#ff6b6b"/>
+          <rect x="112" y="46" width="62" height="52" rx="3" fill="#b9cc95" stroke="#2b2230" stroke-width="2"/>
+          <g fill="#3f5232">
+            <rect x="133" y="54" width="5" height="5"/><rect x="148" y="54" width="5" height="5"/><rect x="128" y="59" width="15" height="5"/><rect x="143" y="59" width="15" height="5"/>
+            <rect x="128" y="64" width="30" height="5"/><rect x="133" y="69" width="20" height="5"/><rect x="138" y="74" width="10" height="5"/>
+          </g>
+          <text x="143" y="93" text-anchor="middle" font-family="ZCOOL KuaiLe, sans-serif" font-size="11" fill="#3f5232">晨钰</text>
+          <text x="110" y="118" font-family="ZCOOL KuaiLe, sans-serif" font-size="8" fill="#6c6f88" font-style="italic">Pocket Dream</text>
+          <path d="M104 136 h9 v-9 h9 v9 h9 v9 h-9 v9 h-9 v-9 h-9z" fill="#2b2230"/>
+          <circle cx="176" cy="132" r="7.5" fill="#b4366c" stroke="#2b2230" stroke-width="2.5"/>
+          <circle cx="160" cy="141" r="7.5" fill="#b4366c" stroke="#2b2230" stroke-width="2.5"/>
+          <rect x="124" y="164" width="14" height="5" rx="2.5" fill="#9b98a8" transform="rotate(-25 131 166)"/>
+          <rect x="143" y="164" width="14" height="5" rx="2.5" fill="#9b98a8" transform="rotate(-25 150 166)"/>
+          <g stroke="#9b98a8" stroke-width="2.5" stroke-linecap="round"><path d="M166 176 l12 -12"/><path d="M171 179 l12 -12"/><path d="M161 173 l12 -12"/></g>
+        </g>
+        <rect x="52" y="120" width="176" height="124" rx="12" fill="#f7b2a2" stroke="#2b2230" stroke-width="5"/>
+        <rect x="128" y="120" width="24" height="124" fill="#fff4dc" stroke="#2b2230" stroke-width="4"/>
+        <circle cx="86" cy="160" r="5" fill="#fff" opacity=".6"/><circle cx="196" cy="200" r="5" fill="#fff" opacity=".6"/><circle cx="92" cy="220" r="5" fill="#fff" opacity=".6"/><circle cx="190" cy="150" r="5" fill="#fff" opacity=".6"/>
+        <g id="lidg">
+          <rect x="40" y="94" width="200" height="34" rx="10" fill="#ee9483" stroke="#2b2230" stroke-width="5"/>
+          <rect x="128" y="94" width="24" height="34" fill="#fff4dc" stroke="#2b2230" stroke-width="4"/>
+          <path d="M140 94 C112 50 72 60 88 86 C96 98 120 96 140 94Z" fill="#fff4dc" stroke="#2b2230" stroke-width="4"/>
+          <path d="M140 94 C168 50 208 60 192 86 C184 98 160 96 140 94Z" fill="#fff4dc" stroke="#2b2230" stroke-width="4"/>
+          <circle cx="140" cy="92" r="10" fill="#f6b94a" stroke="#2b2230" stroke-width="4"/>
+        </g>
+      </svg>
+    </button>
+    <div class="hint" id="openhint">点一下，拆开盒子</div>
+    <button id="play" type="button" hidden>开始游戏</button>
+  </div>
+  <audio id="bgm" src="assets/bgm.mp3" loop preload="auto"></audio>
+</div>
+
+<script>
+/* ======================================================
+   想改祝福或台词，改这里就好
+   句首可以加表情：[平静] [开心] [大笑] [生气] [哭泣] [惊讶] [脸红] [困倦] [撒娇] [爱心眼]
+   ====================================================== */
+const WISHES = {
+  huahua:   ["晨钰，生日快乐！", "愿你走到哪里，都有人给你留一盏灯、一个位置。累了就回来，我们一直在。"],
+  yuanyuan: ["[脸红]祝你……每天都有好吃的，还有晒得到太阳的窗台。", "[撒娇]（小小声）还有，要开心哦。"],
+  momo:     ["[平静]……生日快乐。", "想做的事，慢慢做就好。不急，我们等你。"],
+  xiaomao:  ["[大笑]晨钰！新的一岁要更勇敢一点！", "想去的地方就去，想吃的就吃，想哭也可以哭。反正我们都在！"],
+  nono:     ["[生气]No、no、no——今天不许不开心！这是命令！", "[大笑]生日快乐呀晨钰，比全世界的罐头加起来还要快乐！"],
+  xhb:      ["晨钰生日快乐！我和茶茶商量了一整个晚上要说什么——", "祝你天天开心，吃好睡好，加班少一点，假期多一点！"],
+  chacha:   ["[脸红]（用肩膀碰了碰蟹黄堡）还有，", "希望你也一直被人好好地喜欢着，就像我们这样。生日快乐呀。"],
+};
+const NAMES = { huahua: "花花", yuanyuan: "媛媛", momo: "默默", xiaomao: "小猫", nono: "NoNo", xhb: "蟹黄堡", chacha: "茶茶" };
+
+const $ = s => document.querySelector(s);
+// scale the whole console to the window, keeping a gap around it
+function fit() {
+  const app = $("#app"), vw = innerWidth, vh = innerHeight, land = vw / vh > 1.15;
+  app.classList.toggle("land", land);
+  const W = land ? 1280 : 420, H = land ? 618 : 728, m = Math.max(10, Math.min(vw, vh) * .03);
+  app.style.setProperty("--k", Math.min((vw - 2 * m) / W, (vh - 2 * m) / H));
+}
+fit(); addEventListener("resize", fit); document.addEventListener("fullscreenchange", () => setTimeout(fit, 60));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const store = { get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
+
+/* ================= assets ================= */
+// walk sheets: 8 directions × 2 frames (row 0 = frame 1, row 1 = frame 2), cells 200 tall
+const SHEET = { chenyu: 163, huahua: 203, yuanyuan: 196, nono: 207, xiaomao: 189, xhb: 211, momo: 191, chacha: 211 };
+const HEIGHT = { chenyu: 84, huahua: 80, yuanyuan: 66, xiaomao: 68, nono: 70, momo: 70, xhb: 78, chacha: 78 };
+const FRAME = { down: 0, downleft: 1, left: 2, upleft: 3, up: 4, upright: 5, right: 6, downright: 7 };
+// expression sheets: 10 faces in a row, 150 tall
+const FACEW = { chenyu: 129, huahua: 168, yuanyuan: 143, nono: 155, xiaomao: 145, xhb: 134, momo: 153, chacha: 129 };
+const EXPR = ["平静", "开心", "大笑", "生气", "哭泣", "惊讶", "脸红", "困倦", "撒娇", "爱心眼"];
+const DIR8 = ["right", "downright", "down", "downleft", "left", "upleft", "up", "upright"];
+function dirOf(dx, dy) { return DIR8[(Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) + 8) % 8]; }
+const IMG = {};
+function load(name, src) { return new Promise(r => { const i = new Image(); i.onload = () => { IMG[name] = i; r(); }; i.onerror = r; i.src = src; }); }
+const ready = Promise.all([
+  ...Object.keys(SHEET).map(k => load(k, `assets/${k}.png`)),
+  ...Object.keys(SHEET).map(k => load(k + "_face", `assets/${k}_face.png`)),
+  load("room", "assets/room.jpg"), load("garden", "assets/garden.jpg"), load("desk", "assets/desk.jpg"),
+  ...[1, 2, 3].map(i => load("cg" + i, `assets/cg${i}.jpg`)),
+]);
+
+/* ================= audio ================= */
+let actx = null, bgmWanted = false, bgmHold = false; // bgmHold: the birthday song is playing, keep the BGM quiet
+const bgm = $("#bgm");
+const vol = $("#vol");
+vol.value = store.get("chenyu-vol", "50");
+// iPhone/iPad ignore <audio>.volume, so there the music goes through a gain knob instead (only when served over http(s))
+const IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+let bgmGain = null;
+function routeBgm() {
+  if (bgmGain || !actx || !IOS || !/^https?:/.test(location.protocol)) return;
+  try { const src = actx.createMediaElementSource(bgm); bgmGain = actx.createGain(); src.connect(bgmGain); bgmGain.connect(actx.destination); bgmGain.gain.value = +vol.value / 100; } catch (e) { bgmGain = null; }
+}
+const applyVol = () => { const v = +vol.value; if (bgmGain) { bgmGain.gain.value = v / 100; bgm.volume = 1; } else bgm.volume = v / 100; $("#volv").textContent = v; if (v === 0 || bgmHold) bgm.pause(); else if (bgmWanted && bgm.paused) bgm.play().catch(() => {}); store.set("chenyu-vol", v); };
+vol.addEventListener("input", applyVol); vol.addEventListener("change", applyVol); applyVol();
+const stepVol = d => { audio(); vol.value = Math.max(0, Math.min(100, +vol.value + d)); applyVol(); };
+$("#voldn").addEventListener("click", e => { e.stopPropagation(); stepVol(-10); });
+$("#volup").addEventListener("click", e => { e.stopPropagation(); stepVol(10); });
+$("#volbtn").addEventListener("click", e => { e.stopPropagation(); const p = $("#volpanel"); p.hidden = !p.hidden; e.currentTarget.setAttribute("aria-expanded", !p.hidden); });
+function audio() {
+  if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} }
+  if (actx && actx.state === "suspended") actx.resume();
+  routeBgm();
+  if (bgmWanted && !bgmHold && bgm.paused && +vol.value > 0) bgm.play().catch(() => {});
+  return actx;
+}
+function tone(freq, start, dur, vol = .05, type = "triangle") {
+  const ctx = actx; if (!ctx) return;
+  const o = ctx.createOscillator(), gn = ctx.createGain();
+  o.type = type; o.frequency.value = freq;
+  const t = ctx.currentTime + start;
+  gn.gain.setValueAtTime(0, t); gn.gain.linearRampToValueAtTime(vol, t + .01);
+  gn.gain.exponentialRampToValueAtTime(.001, t + dur);
+  o.connect(gn).connect(ctx.destination); o.start(t); o.stop(t + dur + .05);
+}
+const sfx = {
+  blip: () => tone(900, 0, .035, .02, "sine"),
+  get: () => [659, 784, 1047].forEach((f, i) => tone(f, i * .08, .25, .05, "sine")),
+  candle: () => [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, i * .07, .3, .05, "sine")),
+  bump: () => tone(130, 0, .06, .03),
+  type: () => tone(1500 + Math.random() * 400, 0, .02, .015, "square"),
+};
+
+/* fullscreen: real fullscreen + landscape where the browser allows it */
+if (/; wv\)/.test(navigator.userAgent)) $("#fsbtn").hidden = true; // inside the Android app it is already full screen
+$("#fsbtn").addEventListener("click", async e => {
+  e.stopPropagation();
+  const el = document.documentElement;
+  try {
+    if (document.fullscreenElement || document.webkitFullscreenElement) { await (document.exitFullscreen || document.webkitExitFullscreen).call(document); return; }
+    await (el.requestFullscreen || el.webkitRequestFullscreen).call(el);
+    try { await screen.orientation.lock("landscape"); } catch (err) {}
+  } catch (err) { $("#fsbtn").textContent = "横过手机更大"; }
+});
+
+/* ================= maps ================= */
+const VW = 640, VH = 400;
+const MAPS = {
+  room: {
+    bounds: [[262, 272, 1030, 628]],
+    walls: [[250, 140, 418, 392], [405, 140, 505, 276], [495, 50, 652, 268], [955, 100, 1045, 270], [550, 326, 738, 460], [932, 492, 1032, 602]],
+    spots: {
+      bed: [250, 140, 418, 392], laptop: [405, 140, 505, 276], shelf: [495, 50, 652, 268], plant: [955, 100, 1045, 270],
+      table: [550, 326, 738, 460], box: [932, 492, 1032, 602], window: [690, 0, 990, 272], door: [575, 600, 700, 660],
+    },
+    exits: [{ r: [585, 618, 690, 660], to: "garden", at: [618, 250], dir: "down" }],
+    cam: [205, 0, 1082, 662],
+  },
+  garden: {
+    bounds: [[48, 222, 1236, 686], [570, 150, 668, 240]],
+    walls: [[40, 180, 215, 272], [990, 180, 1235, 288], [40, 462, 214, 664], [1098, 470, 1270, 700], [228, 322, 402, 408],
+      [393, 238, 424, 332], [496, 238, 528, 332], [945, 175, 1132, 278], [1048, 288, 1172, 392], [878, 366, 1008, 490],
+      [760, 392, 840, 464], [362, 482, 488, 542], [260, 490, 360, 570], [810, 590, 894, 662], [940, 574, 1128, 700], [332, 626, 452, 700]],
+    spots: {
+      cake: [878, 366, 1008, 490], pond: [228, 322, 402, 408], swing: [945, 175, 1132, 278], bench: [1048, 288, 1172, 392],
+      bowls: [362, 482, 488, 542], dogbed: [260, 490, 360, 570], house: [440, 0, 830, 200],
+    },
+    exits: [{ r: [578, 140, 662, 172], to: "room", at: [637, 588], dir: "up" }],
+    cam: [0, 0, 1280, 720],
+  },
+};
+const FLOWERS = [[110, 336], [596, 380], [786, 272]];
+
+/* ================= state & entities ================= */
+let scene = "desk", map = "room", busy = true;
+let night = 0, deskStage = 0, clock = 0;
+const S = { candles: 0, got: {}, has: {}, quest: {}, known: {}, nono: false, flowers: 0, picked: {}, lit: false, placed: false };
+function ent(id, map, x, y, dir = "down") { return { id, map, x, y, dir, visible: true, moving: false, dance: false }; }
+const E = {
+  me: ent("chenyu", "room", 334, 300),
+  huahua: ent("huahua", "room", 466, 318, "left"),
+  yuanyuan: ent("yuanyuan", "room", 300, 586),
+  momo: ent("momo", "room", 840, 330),
+  xiaomao: ent("xiaomao", "room", 880, 436),
+  nono: ent("nono", "room", 866, 566, "left"),
+  xhb: ent("xhb", "garden", 822, 560, "right"),
+  chacha: ent("chacha", "garden", 890, 575, "left"),
+};
+const me = E.me; E.nono.visible = false;
+const cam = { x: 0, y: 0 };
+
+const inRect = (x, y, r, pad = 0) => x >= r[0] - pad && x <= r[2] + pad && y >= r[1] - pad && y <= r[3] + pad;
+function walkable(x, y) {
+  const M = MAPS[map];
+  if (!M.bounds.some(b => inRect(x, y, b))) return false;
+  if (M.walls.some(w => inRect(x, y, w, 12))) return false;
+  if (map === "room" && !S.has.fish && Math.hypot(x - 520, y - 596) < 26) return false;
+  return true;
+}
+// 晨钰不会被小动物挡住（走过去时它们会让开）；要是不小心站进了家具里，往哪走都放行，免得卡住
+function free(x, y, self) {
+  if (!walkable(x, y)) return self === me && !walkable(self.x, self.y);
+  if (self === me) return true;
+  return !Object.values(E).some(e => e !== self && e.visible && e.map === map && Math.hypot(e.x - x, e.y - y) < 36);
+}
+// friends step aside when 晨钰 walks into them
+function nudge(vx, vy) {
+  for (const e of Object.values(E)) {
+    if (e === me || !e.visible || e.map !== map) continue;
+    const dx = e.x - me.x, dy = e.y - me.y, d = Math.hypot(dx, dy) || .01;
+    if (d >= 34) continue;
+    // step to the side (across 晨钰's path) rather than being pushed ahead of her
+    const l = Math.hypot(vx, vy) || 1; let px = -vy / l, py = vx / l;
+    if (px * dx + py * dy < 0) { px = -px; py = -py; }
+    const push = (34 - d) * .45, ux = px * .85 + dx / d * .3, uy = py * .85 + dy / d * .3;
+    for (const [mx, my] of [[ux, uy], [px, py], [-px, -py], [dx / d, dy / d]]) {
+      const nx = e.x + mx * push, ny = e.y + my * push;
+      if (walkable(nx, ny)) { e.x = nx; e.y = ny; break; }
+    }
+  }
+}
+function tweenTo(e, x, y, ms) {
+  return new Promise(res => {
+    const sx = e.x, sy = e.y, t0 = performance.now();
+    const dx = x - sx, dy = y - sy;
+    if (dx || dy) e.dir = dirOf(dx, dy);
+    ms = ms || Math.max(200, Math.hypot(dx, dy) / .2);
+    e.moving = true;
+    (function f(now) {
+      const p = Math.min(1, (now - t0) / ms);
+      e.x = sx + dx * p; e.y = sy + dy * p;
+      if (p < 1) requestAnimationFrame(f); else { e.moving = false; res(); }
+    })(t0);
+  });
+}
+async function walk(e, path) { for (const [x, y] of path) await tweenTo(e, x, y); }
+function face(e, t) {
+  e.dir = dirOf(t.x - e.x, t.y - e.y);
+}
+
+/* ================= drawing ================= */
+const cv = $("#game"), g = cv.getContext("2d");
+let DPR = 1, frameN = 0;
+// draw at the real number of screen pixels the game screen covers (the console is scaled as a whole), so it stays sharp on phones
+function resize() {
+  const r = cv.getBoundingClientRect(), px = (r.width || VW) * (window.devicePixelRatio || 1) / VW;
+  const d = Math.max(1, Math.min(3, Math.ceil(px * 4) / 4));
+  if (d !== DPR || cv.width !== Math.round(VW * d)) { DPR = d; cv.width = Math.round(VW * d); cv.height = Math.round(VH * d); }
+  g.imageSmoothingEnabled = true; g.imageSmoothingQuality = "high";
+}
+resize(); addEventListener("resize", () => setTimeout(resize, 80)); document.addEventListener("fullscreenchange", () => setTimeout(resize, 150));
+
+// top edge of each walk frame (row 1) inside its 200px cell — used to find where the legs start
+const TOP = {"chenyu":[4,10,10,4,5,4,10,10],"huahua":[4,13,21,12,8,12,21,13],"yuanyuan":[2,8,14,5,7,5,14,8],"nono":[6,11,15,9,10,9,15,11],"xiaomao":[8,11,18,8,9,8,18,11],"xhb":[1,7,12,1,3,1,12,7],"momo":[4,3,10,5,4,5,10,3],"chacha":[3,8,13,3,4,3,13,8]};
+const BELLY = { chenyu: "#f8f8f8", huahua: "#f8e0b0", yuanyuan: "#f8c068", nono: "#8898b8", xiaomao: "#f8f8f8", xhb: "#888888", momo: "#3a3a3a", chacha: "#383838" };
+const IDLE = ["look", "hop", "paws", "wiggle", "stretch", "emote", "look", "emote"];
+const IDLE_BY = { xiaomao: ["hop", "wiggle", "hop", "emote", "look"], momo: ["emote", "stretch", "look", "emote"], huahua: ["paws", "hop", "emote", "look"],
+  yuanyuan: ["look", "emote", "stretch", "paws"], nono: ["hop", "emote", "look", "paws"], xhb: ["paws", "emote", "look", "wiggle"], chacha: ["look", "emote", "stretch", "paws"] };
+const EMOTE = { huahua: ["♥", "♪"], yuanyuan: ["♥", "…"], nono: ["！", "♪"], xiaomao: ["♪", "！"], momo: ["…", "z"], xhb: ["♪", "！"], chacha: ["♥", "…"], chenyu: ["♪", "♥"] };
+function drawChar(e) {
+  const img = IMG[e.id]; if (!img) return;
+  const fw = SHEET[e.id], fh = 200, h = HEIGHT[e.id], s = h / fh, w = fw * s;
+  const moved = Math.hypot(e.x - (e.px ?? e.x), e.y - (e.py ?? e.y)); e.px = e.x; e.py = e.y;
+  if (moved >= 40 || !e.home || e.home[2] !== e.map) { e.home = [e.x, e.y, e.map]; e.amb = null; } // placed by the story: this is its spot now
+  const walking = e.moving || (moved > .05 && moved < 40);
+  if (walking && moved < 40) e.dist = (e.dist || 0) + moved;
+  // ---- idle: breathe, and every few seconds do a little something ----
+  const now = clock, seed = (e.x * 7 + e.id.length * 131) % 1000;
+  if (walking || e.dance) { e.act = null; e.still = now; e.nextIdle = 0; }
+  else {
+    if (!e.nextIdle) e.nextIdle = now + 1200 + Math.random() * 3500;
+    if (!e.act && now > e.nextIdle && now - (e.still || 0) > 700) {
+      const pool = IDLE_BY[e.id] || IDLE;
+      let type = pool[Math.floor(Math.random() * pool.length)];
+      if (type === "look" && busy) type = "paws";
+      const li = (FRAME[e.dir] + (Math.random() < .5 ? 1 : 7)) % 8, look = Object.keys(FRAME).find(k => FRAME[k] === li) || e.dir;
+      e.act = { type, t0: now, dur: { look: 1400, hop: 520, paws: 900, wiggle: 700, stretch: 1100, emote: 1600 }[type], look, em: (EMOTE[e.id] || ["♪"])[Math.floor(Math.random() * 2)] };
+    }
+    if (e.act && now - e.act.t0 > e.act.dur) { e.act = null; e.nextIdle = now + 2200 + Math.random() * 5000; }
+  }
+  let dir = e.dir, lift = 0, rot = 0, sq = 1 + Math.sin(now / 650 + seed) * .012, phase = 0, amp = 0;
+  const A = e.act, p = A ? (now - A.t0) / A.dur : 0;
+  if (walking) { phase = e.dist / (h * .95); amp = 1; sq = 1; }
+  else if (A) {
+    if (A.type === "look") dir = A.look;
+    if (A.type === "hop") { lift = Math.sin(p * Math.PI) * h * .13; sq = p < .12 || p > .88 ? .93 : 1.03; }
+    if (A.type === "paws") { phase = p * 2; amp = .7; }
+    if (A.type === "wiggle") rot = Math.sin(p * Math.PI * 6) * .07 * (1 - p);
+    if (A.type === "stretch") sq = 1 - .07 * Math.sin(p * Math.PI);
+  }
+  if (e.dance) { rot = Math.sin(now / 180 + seed) * .1; phase = now / 520 + seed; amp = .8; lift = Math.max(0, Math.sin(now / 260 + seed)) * 3; }
+  if (!(dir in FRAME)) dir = e.dir in FRAME ? e.dir : "down";
+  const fi = FRAME[dir], sx = fi * fw, sy = (amp ? Math.floor(phase * 2) % 2 : 0) * fh;
+  const top = TOP[e.id][fi], hip = Math.round(top + (fh - top) * .7), lh = fh - hip;
+  const side = dir !== "up" && dir !== "down";
+  // shadow stays on the ground
+  const sh = 1 - lift / (h * .4);
+  g.fillStyle = "rgba(60,40,30,.22)"; g.beginPath(); g.ellipse(e.x, e.y, w * .32 * sh, 5 * sh, 0, 0, 7); g.fill();
+  g.save(); g.translate(e.x, e.y + 2 - lift); g.rotate(rot); g.scale(1 / Math.sqrt(sq), sq);
+  const x0 = -w / 2, y0 = -h + hip * s;
+  const sw = Math.sin(phase * Math.PI * 2) * amp;
+  // legs go in first and the body is drawn over them, so a paw that lifts slides up under the body instead of shrinking (no stubs, no extra legs)
+  // side views: front and back pair swing from the hip; a plain patch of belly fur behind them fills the little gap that opens between the pairs
+  if (side && amp) { g.fillStyle = BELLY[e.id] || "#fff"; g.beginPath(); g.ellipse(x0 + w / 2, y0, fw * .17 * s, lh * .34 * s, 0, 0, Math.PI); g.fill(); }
+  for (let half = 0; half < 2; half++) {
+    const d1 = half ? 1 : -1, a0 = half ? fw / 2 - .5 : 0, a1 = half ? fw : fw / 2 + .5;
+    g.save();
+    if (side) { const k = d1 * sw * .38; g.transform(1, 0, k, 1, -k * y0, 0); }
+    else g.translate(0, -Math.max(0, d1 * sw) * lh * s * .3); // front/back: left and right paw take turns lifting
+    g.drawImage(img, sx + a0, sy + hip, a1 - a0, lh, x0 + a0 * s, y0, (a1 - a0) * s, lh * s);
+    g.restore();
+  }
+  g.drawImage(img, sx, sy, fw, hip + 1, x0, -h, w, (hip + 1) * s);           // body
+  g.restore();
+  if (A && A.type === "emote" && !walking) {
+    const t = Math.min(1, p * 4), y = e.y - h - 14 - t * 6;
+    g.globalAlpha = p > .8 ? (1 - p) * 5 : 1;
+    g.font = "bold 18px 'ZCOOL KuaiLe', sans-serif"; g.textAlign = "center";
+    g.fillStyle = A.em === "♥" ? "#f26d8a" : "#fff"; g.strokeStyle = "#2b2230"; g.lineWidth = 3;
+    g.strokeText(A.em, e.x + 10, y); g.fillText(A.em, e.x + 10, y);
+    g.textAlign = "start"; g.globalAlpha = 1;
+  }
+}
+function closedEyes(x0, y0, s) {
+  for (const [ex, ey] of [[66, 59], [92, 59]]) {
+    const x = x0 + ex * s, y = y0 + ey * s;
+    g.fillStyle = "#fff"; g.beginPath(); g.arc(x, y, 5.5 * s, 0, 7); g.fill();
+    g.strokeStyle = "#1c1820"; g.lineWidth = 2.2 * s; g.lineCap = "round";
+    g.beginPath(); g.arc(x, y - 1.5 * s, 3.6 * s, .2 * Math.PI, .8 * Math.PI); g.stroke();
+  }
+}
+function zzz(x, y) {
+  g.fillStyle = "#fff"; g.strokeStyle = "#2b2230"; g.lineWidth = 3; g.font = "bold 22px ZCOOL KuaiLe, sans-serif";
+  const t = (clock / 700) % 3;
+  g.strokeText("z", x, y - t * 5); g.fillText("z", x, y - t * 5);
+  if (t > 1) { g.font = "bold 30px ZCOOL KuaiLe, sans-serif"; g.strokeText("Z", x + 16, y - 20 - (t - 1) * 5); g.fillText("Z", x + 16, y - 20 - (t - 1) * 5); }
+}
+function sparkle(x, y) {
+  const s = 4 + Math.sin(clock / 260) * 1.5;
+  g.fillStyle = "#fff6c8"; g.strokeStyle = "#f6b94a"; g.lineWidth = 2;
+  g.beginPath(); g.moveTo(x, y - s * 2); g.lineTo(x + s * .6, y - s * .6); g.lineTo(x + s * 2, y); g.lineTo(x + s * .6, y + s * .6);
+  g.lineTo(x, y + s * 2); g.lineTo(x - s * .6, y + s * .6); g.lineTo(x - s * 2, y); g.lineTo(x - s * .6, y - s * .6); g.closePath(); g.fill(); g.stroke();
+}
+function fishToy(x, y) {
+  g.lineWidth = 2.5; g.strokeStyle = "#2b2230"; g.fillStyle = "#8fb8e6";
+  g.beginPath(); g.ellipse(x, y, 15, 8, 0, 0, 7); g.fill(); g.stroke();
+  g.beginPath(); g.moveTo(x - 13, y); g.lineTo(x - 24, y - 8); g.lineTo(x - 24, y + 8); g.closePath(); g.fill(); g.stroke();
+  g.fillStyle = "#2b2230"; g.beginPath(); g.arc(x + 7, y - 2, 2, 0, 7); g.fill();
+}
+// seven little candles standing in a ring on the cake's top (cx, cy = middle of the top surface)
+function candles(cx, cy, n, lit) {
+  const cols = ["#f2a7b0", "#8fb8e6", "#f6b94a", "#a8d5c2", "#f2a7b0", "#8fb8e6", "#f6b94a"];
+  const pts = [];
+  for (let i = 0; i < n; i++) { const a = -Math.PI / 2 + i * 2 * Math.PI / n; pts.push([cx + Math.cos(a) * 27, cy + Math.sin(a) * 8, i]); }
+  pts.sort((a, b) => a[1] - b[1]).forEach(([x, y, i]) => {
+    g.fillStyle = cols[i]; g.strokeStyle = "#2b2230"; g.lineWidth = 1;
+    g.fillRect(x - 1.8, y - 12, 3.6, 12); g.strokeRect(x - 1.8, y - 12, 3.6, 12);
+    g.fillStyle = "rgba(255,255,255,.7)"; g.fillRect(x - 1, y - 11, 1, 10);
+    g.strokeStyle = "#2b2230"; g.beginPath(); g.moveTo(x, y - 12); g.lineTo(x, y - 15); g.stroke();
+    if (lit) {
+      const f = Math.sin(clock / 90 + i) * 1;
+      g.fillStyle = "#ffcf5a"; g.beginPath(); g.ellipse(x, y - 19, 2.8, 5 + f, 0, 0, 7); g.fill();
+      g.fillStyle = "#fff6d8"; g.beginPath(); g.ellipse(x, y - 18, 1.2, 2.4, 0, 0, 7); g.fill();
+    }
+  });
+}
+function drawMap() {
+  const bg = IMG[map];
+  g.drawImage(bg, 0, 0);
+  if (map === "room") {
+    if (!S.has.fish) fishToy(520, 592);
+    if (S.quest.ribbon && !S.has.ribbon) sparkle(334, 398);
+    if (!S.nono && (clock % 2600) < 320) {
+      g.save(); g.translate(982, 548); g.rotate(Math.sin(clock / 30) * .05);
+      g.drawImage(bg, 935, 498, 94, 100, -47, -50, 94, 100); g.restore();
+    }
+  } else {
+    if (S.quest.flowers) FLOWERS.forEach(([x, y], i) => { if (!S.picked[i]) sparkle(x, y - 26); });
+    if (S.party) drawPartyProps();
+    if (S.placed) candles(943, 398, 7, S.lit);
+  }
+  if (target) { g.strokeStyle = "rgba(255,255,255,.8)"; g.lineWidth = 2; g.beginPath(); g.ellipse(target.x, target.y, 10 + Math.sin(clock / 120) * 2, 5, 0, 0, 7); g.stroke(); }
+  Object.values(E).filter(e => e.visible && e.map === map).sort((a, b) => a.y - b.y).forEach(drawChar);
+  if (S.party && map === "garden") drawBubbles();
+  if (night) {
+    g.fillStyle = `rgba(16,14,40,${night})`; g.fillRect(0, 0, 1280, 720);
+    if (S.lit) { const gl = g.createRadialGradient(943, 385, 4, 943, 385, 220); gl.addColorStop(0, "rgba(255,200,110,.45)"); gl.addColorStop(1, "rgba(255,200,110,0)"); g.fillStyle = gl; g.fillRect(0, 0, 1280, 720); }
+  }
+}
+// the laptop's outline in the desk picture, so she can sit behind it
+const LAPTOP = [[348, 270], [584, 274], [600, 408], [650, 400], [652, 434], [596, 460], [370, 456], [344, 280]];
+function drawDesk() {
+  const s = VH / 720;
+  g.save(); g.translate((VW - 1280 * s) / 2, 0); g.scale(s, s);
+  const bg = IMG.desk, img = IMG.chenyu, fw = SHEET.chenyu, h = 300, w = fw * h / 200, y = 196;
+  g.drawImage(bg, 0, 0);
+  g.drawImage(img, 0, 0, fw, 200, 680 - w / 2, y, w, h);
+  if (deskStage >= 2) closedEyes(680 - w / 2, y, h / 200);
+  g.drawImage(bg, 0, 388, 1280, 332, 0, 388, 1280, 332);
+  g.save(); g.beginPath(); LAPTOP.forEach(([x, yy], i) => i ? g.lineTo(x, yy) : g.moveTo(x, yy)); g.closePath(); g.clip();
+  g.drawImage(bg, 0, 0); g.restore();
+  if (deskStage >= 1) zzz(790, 220);
+  g.restore();
+}
+// first-person: lying on the bed, looking up at 花花
+function drawPOV() {
+  g.save();
+  g.filter = "blur(3px)"; g.drawImage(IMG.room, 240, 40, 560, 350, -20, -20, VW + 40, VH + 40); g.filter = "none";
+  g.fillStyle = "rgba(255,240,220,.15)"; g.fillRect(0, 0, VW, VH);
+  const fw = FACEW.huahua, h = 400, w = fw * h / 150, bob = Math.sin(clock / 500) * 4;
+  g.drawImage(IMG.huahua_face, fw * 1, 0, fw, 150, VW / 2 - w / 2 + 30, 50 + bob, w, h);
+  g.restore();
+}
+
+const parts = [];
+function burst(kind, n, x, y) {
+  if (RM) return;
+  const cols = ["#f6b94a", "#f2a7b0", "#a8d5c2", "#fff4dc", "#8fb8e6"];
+  for (let i = 0; i < n; i++) parts.push({ kind, x, y, vx: (Math.random() - .5) * (kind === "heart" ? 1.2 : 9), vy: kind === "heart" ? -.8 - Math.random() * .8 : -4 - Math.random() * 6, c: cols[i % 5], life: kind === "heart" ? 120 : 150, r: Math.random() * 6 });
+}
+function drawParts() {
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const p = parts[i];
+    p.x += p.vx; p.y += p.vy; if (p.kind === "conf") { p.vy += .18; p.r += .15; } p.life--;
+    if (p.life <= 0) { parts.splice(i, 1); continue; }
+    if (p.kind === "heart") {
+      g.fillStyle = "#f26d8a"; g.beginPath(); g.moveTo(p.x, p.y + 6); g.bezierCurveTo(p.x - 12, p.y - 4, p.x - 4, p.y - 12, p.x, p.y - 4); g.bezierCurveTo(p.x + 4, p.y - 12, p.x + 12, p.y - 4, p.x, p.y + 6); g.fill();
+    } else { g.save(); g.translate(p.x, p.y); g.rotate(p.r); g.fillStyle = p.c; g.fillRect(-4, -2, 8, 4); g.restore(); }
+  }
+}
+
+let last = 0;
+function frame(now) {
+  const dt = Math.min(50, now - (last || now)); last = now; clock = now;
+  if ((++frameN & 63) === 0) resize();
+  g.setTransform(DPR, 0, 0, DPR, 0, 0);
+  g.fillStyle = "#141a2e"; g.fillRect(0, 0, VW, VH);
+  if (IMG.desk) {
+    if (scene === "desk") drawDesk();
+    else if (scene === "black") {}
+    else if (scene === "pov") drawPOV();
+    else {
+      movePlayer(dt);
+      if (S.party && !busy) partyTick(dt);
+      else if (!busy) ambientTick(dt);
+      const cb = MAPS[map].cam;
+      cam.x = Math.max(cb[0], Math.min(cb[2] - VW, me.x - VW / 2));
+      cam.y = Math.max(cb[1], Math.min(cb[3] - VH, me.y - 50 - VH / 2));
+      g.save(); g.translate(-cam.x, -cam.y); drawMap(); drawParts(); g.restore();
+    }
+  }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* ================= input ================= */
+const held = [];
+let target = null, talkTo = null;
+const KEYMAP = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right", w: "up", s: "down", a: "left", d: "right", W: "up", S: "down", A: "left", D: "right" };
+const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+const press = d => { target = null; if (!held.includes(d)) held.push(d); };
+const release = d => { const i = held.indexOf(d); if (i >= 0) held.splice(i, 1); };
+const isA = k => k === " " || k === "Enter" || k === "z" || k === "Z";
+addEventListener("keydown", e => {
+  if (e.target.id === "wish-input" || e.target.id === "vol") return;
+  const d = KEYMAP[e.key];
+  if (d) { e.preventDefault(); if (choice) { if (!e.repeat) moveChoice(d); return; } press(d); return; }
+  if (isA(e.key)) { e.preventDefault(); if (e.repeat) return; aDown(); }
+});
+addEventListener("keyup", e => { const d = KEYMAP[e.key]; if (d) release(d); if (isA(e.key)) aUp(); });
+document.querySelectorAll("#dpad button").forEach(b => {
+  const d = b.dataset.dir;
+  b.addEventListener("pointerdown", e => { e.preventDefault(); audio(); b.classList.add("held"); if (choice) moveChoice(d); else press(d); });
+  const up = () => { b.classList.remove("held"); release(d); };
+  ["pointerup", "pointerleave", "pointercancel"].forEach(ev => b.addEventListener(ev, up));
+  b.addEventListener("contextmenu", e => e.preventDefault());
+});
+const A = $("#abtn");
+A.addEventListener("pointerdown", e => { e.preventDefault(); A.classList.add("held"); aDown(); });
+["pointerup", "pointerleave", "pointercancel"].forEach(ev => A.addEventListener(ev, () => { A.classList.remove("held"); aUp(); }));
+A.addEventListener("contextmenu", e => e.preventDefault());
+$("#dlg").addEventListener("click", () => { if (!hold) aDown(); });
+// tap the game screen: advance text, or walk to the tapped spot (and talk if it's a friend)
+cv.addEventListener("pointerdown", e => {
+  audio(); $("#volpanel").hidden = true;
+  if (hold) { hold.start(); return; }
+  if (onA || advance || choice || busy || scene !== "map") { if (!choice) aDown(); return; }
+  const r = cv.getBoundingClientRect();
+  const x = cam.x + (e.clientX - r.left) / r.width * VW, y = cam.y + (e.clientY - r.top) / r.height * VH;
+  const hit = Object.values(E).find(en => en !== me && en.visible && en.map === map && Math.abs(en.x - x) < 36 && y < en.y + 10 && y > en.y - HEIGHT[en.id] - 10);
+  target = hit ? { x: hit.x, y: hit.y } : { x, y }; talkTo = hit || null;
+  if (!hit && Object.values(MAPS[map].spots).some(r => inRect(x, y, r))) target.spot = true;
+});
+cv.addEventListener("pointerup", () => aUp());
+
+let hold = null, onA = null;
+function aDown() {
+  audio();
+  if (hold) { hold.start(); return; }
+  if (choice) { pickChoice(choice.idx); return; }
+  if (advance) { advance(); return; }
+  if (onA) { onA(); return; }
+  if (scene === "map" && !busy) interact();
+}
+function aUp() { if (hold) hold.stop(); }
+
+function movePlayer(dt) {
+  if (busy) return;
+  let vx = 0, vy = 0;
+  if (held.length) {
+    held.forEach(d => { vx += DIRS[d][0]; vy += DIRS[d][1]; });
+    if (!vx && !vy) { me.moving = false; return; }
+    const l = Math.hypot(vx, vy); vx /= l; vy /= l; me.dir = dirOf(vx, vy);
+  }
+  else if (target) {
+    if (talkTo) { target.x = talkTo.x; target.y = talkTo.y; if (Math.hypot(target.x - me.x, target.y - me.y) < 62) return arrive(); }
+    if (!target.path || (talkTo && clock - target.planned > 500)) { if (!plan()) return stopWalk(); }
+    let wp = target.path[0];
+    while (wp && Math.hypot(wp[0] - me.x, wp[1] - me.y) < 4) { target.path.shift(); wp = target.path[0]; }
+    if (!wp) return arrive();
+    const dx = wp[0] - me.x, dy = wp[1] - me.y, dist = Math.hypot(dx, dy);
+    vx = dx / dist; vy = dy / dist;
+    me.dir = dirOf(dx, dy);
+    const st = Math.min(dist, .24 * dt), nx = me.x + vx * st, ny = me.y + vy * st;
+    if (free(nx, ny, me)) { me.x = nx; me.y = ny; me.moving = true; nudge(vx, vy); }
+    else if (!target.retried) { target.retried = true; target.path = null; }   // something in the way: plan again once
+    else return stopWalk();
+    const ex = MAPS[map].exits.find(x => inRect(me.x, me.y, x.r));
+    if (ex) ex.to === "garden" ? askOut(ex) : goTo(ex);
+    return;
+  } else { me.moving = false; return; }
+  const sp = .24 * dt;
+  let moved = false;
+  for (const [mx, my] of [[vx, vy], [Math.sign(vx), 0], [0, Math.sign(vy)]]) {
+    if (!mx && !my) continue;
+    const nx = me.x + mx * sp, ny = me.y + my * sp;
+    if (free(nx, ny, me)) { me.x = nx; me.y = ny; moved = true; break; }
+  }
+  me.moving = moved;
+  if (moved) nudge(vx, vy);
+  if (!moved) { if (target) { const sp = target.spot; target = null; talkTo = null; if (sp) { me.moving = false; interact(); return; } } if (!me.bumped) { sfx.bump(); me.bumped = true; setTimeout(() => me.bumped = false, 350); } }
+  const ex = MAPS[map].exits.find(x => inRect(me.x, me.y, x.r));
+  if (ex) ex.to === "garden" ? askOut(ex) : goTo(ex);
+}
+/* ---- tap-to-walk: find a way around furniture; stop if the spot can't be reached ---- */
+const CELL = 16;
+const cellOk = (cx, cy) => walkable(cx * CELL + CELL / 2, cy * CELL + CELL / 2);
+function lineOk(x0, y0, x1, y1) { const n = Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 6); for (let i = 1; i <= n; i++) if (!walkable(x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n)) return false; return true; }
+function nearestOk(x, y, maxR) {
+  const cx = Math.floor(x / CELL), cy = Math.floor(y / CELL);
+  let best = null;
+  for (let r = 0; r <= maxR && !best; r++)
+    for (let i = -r; i <= r; i++) for (let j = -r; j <= r; j++) {
+      if (Math.max(Math.abs(i), Math.abs(j)) !== r || !cellOk(cx + i, cy + j)) continue;
+      const d = Math.hypot(i, j); if (!best || d < best[2]) best = [cx + i, cy + j, d];
+    }
+  return best;
+}
+function astar(sx, sy, gx, gy) {
+  const W = Math.ceil(1280 / CELL), key = (x, y) => y * W + x, open = [[sx, sy]], g = new Map([[key(sx, sy), 0]]), from = new Map(), h = (x, y) => Math.hypot(x - gx, y - gy);
+  const f = new Map([[key(sx, sy), h(sx, sy)]]), closed = new Set();
+  while (open.length) {
+    let bi = 0; for (let i = 1; i < open.length; i++) if (f.get(key(...open[i])) < f.get(key(...open[bi]))) bi = i;
+    const [x, y] = open.splice(bi, 1)[0], k = key(x, y);
+    if (x === gx && y === gy) { const path = [[x, y]]; let c = k; while (from.has(c)) { c = from.get(c); path.unshift([c % W, Math.floor(c / W)]); } return path; }
+    if (closed.has(k)) continue; closed.add(k);
+    if (closed.size > 4000) return null;
+    for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
+      if (!dx && !dy) continue;
+      const nx = x + dx, ny = y + dy;
+      if (!cellOk(nx, ny) || (dx && dy && (!cellOk(x + dx, y) || !cellOk(x, y + dy)))) continue;
+      const nk = key(nx, ny), ng = g.get(k) + (dx && dy ? 1.414 : 1);
+      if (ng < (g.get(nk) ?? Infinity)) { g.set(nk, ng); f.set(nk, ng + h(nx, ny)); from.set(nk, k); open.push([nx, ny]); }
+    }
+  }
+  return null;
+}
+function plan() {
+  let gx = target.x, gy = target.y;
+  if (!walkable(gx, gy)) {   // a friend, or something like the table: walk up next to it; plain unreachable ground: give up
+    const n = nearestOk(gx, gy, talkTo || target.spot ? 14 : 1);
+    if (!n) return false;
+    gx = n[0] * CELL + CELL / 2; gy = n[1] * CELL + CELL / 2;
+  }
+  const start = walkable(me.x, me.y) ? [Math.floor(me.x / CELL), Math.floor(me.y / CELL)] : (nearestOk(me.x, me.y, 3) || []).slice(0, 2);
+  if (!start.length) return false;
+  if (!cellOk(...start)) { const n = nearestOk(me.x, me.y, 3); if (!n) return false; start[0] = n[0]; start[1] = n[1]; }
+  const goal = [Math.floor(gx / CELL), Math.floor(gy / CELL)];
+  if (!cellOk(...goal)) { const n = nearestOk(gx, gy, 2); if (!n) return false; goal[0] = n[0]; goal[1] = n[1]; }
+  let pts;
+  if (lineOk(me.x, me.y, gx, gy)) pts = [[gx, gy]];
+  else {
+    const cells = astar(start[0], start[1], goal[0], goal[1]);
+    if (!cells) return false;
+    const raw = cells.map(([x, y]) => [x * CELL + CELL / 2, y * CELL + CELL / 2]); raw[raw.length - 1] = walkable(gx, gy) ? [gx, gy] : raw[raw.length - 1];
+    pts = []; let from = [me.x, me.y], i = 0;   // straighten: jump to the farthest point we can see
+    while (i < raw.length) { let j = raw.length - 1; while (j > i && !lineOk(from[0], from[1], raw[j][0], raw[j][1])) j--; pts.push(raw[j]); from = raw[j]; i = j + 1; }
+  }
+  target.path = pts; target.planned = clock;
+  if (!talkTo) { target.x = pts[pts.length - 1][0]; target.y = pts[pts.length - 1][1]; }
+  return true;
+}
+function arrive() {
+  const t = talkTo, sp = target && target.spot; target = null; talkTo = null; me.moving = false;
+  if (t) { face(me, t); interact(t); } else if (sp) interact();
+}
+function stopWalk() {
+  const sp = target && target.spot; target = null; talkTo = null; me.moving = false;
+  if (sp) return interact();
+  if (!me.bumped) { sfx.bump(); me.bumped = true; setTimeout(() => me.bumped = false, 350); }
+}
+// the arched door is closed: ask before going outside
+async function askOut(ex) {
+  busy = true; me.moving = false; held.length = 0; target = null;
+  await say(null, "一扇关着的小拱门。门缝里飘进来花香。");
+  const c = await choose(["推开门，去院子里", "先不出去"]);
+  if (c === 0) { sfx.get(); busy = false; return goTo(ex); }
+  me.y -= 30; me.dir = "up";
+  busy = false; idle(hint());
+}
+async function goTo(ex) {
+  busy = true; me.moving = false; held.length = 0; target = null;
+  $("#fade").classList.add("on"); await sleep(450);
+  map = ex.to; me.map = ex.to; me.x = ex.at[0]; me.y = ex.at[1]; me.dir = ex.dir;
+  if (S.party) Object.assign(E.nono, { map: ex.to, x: ex.at[0] + 44, y: ex.at[1] + (ex.to === "room" ? -14 : 20) });
+  await sleep(150); $("#fade").classList.remove("on"); await sleep(300);
+  if (map === "garden" && !S.quest.sawGarden) { S.quest.sawGarden = true; await say(null, "门外是一个开满花的院子。野餐垫上放着一个好大的草莓蛋糕。"); }
+  busy = false; idle(hint());
+}
+
+/* ================= dialogue ================= */
+const dlg = $("#dlg"), textEl = $("#dlg-text"), faceC = $("#face"), fctx = faceC.getContext("2d"), choicesEl = $("#choices"), nameEl = $("#dlg-name");
+fctx.scale(2, 2); fctx.imageSmoothingQuality = "high"; // drawn in 120×120 units on a 2× canvas so faces stay crisp
+let advance = null, choice = null;
+function header(who, expr = 1) {
+  choicesEl.hidden = true; dlg.classList.remove("ready");
+  if (who && IMG[who + "_face"]) {
+    faceC.hidden = false; fctx.clearRect(0, 0, 120, 120);
+    const fw = FACEW[who], s = Math.min(112 / 150, 116 / fw);
+    fctx.drawImage(IMG[who + "_face"], expr * fw, 0, fw, 150, (120 - fw * s) / 2, 120 - 150 * s, fw * s, 150 * s);
+    nameEl.hidden = false; nameEl.textContent = S.known[who] ? NAMES[who] : "？？？"; nameEl.classList.toggle("unknown", !S.known[who]);
+  } else { faceC.hidden = true; nameEl.hidden = true; }
+  textEl.className = who ? "" : "narr";
+}
+function know(who) {
+  if (S.known[who]) return;
+  S.known[who] = true; nameEl.textContent = NAMES[who]; nameEl.classList.remove("unknown");
+  nameEl.classList.remove("pop"); void nameEl.offsetWidth; nameEl.classList.add("pop"); sfx.get();
+}
+// a line can start with an expression tag, e.g. "[脸红]……你好。"  (平静 开心 大笑 生气 哭泣 惊讶 脸红 困倦 撒娇 爱心眼)
+function say(who, text, intro) {
+  let expr = 1;
+  const m = /^\[(.+?)\]/.exec(text);
+  if (m && EXPR.includes(m[1])) { expr = EXPR.indexOf(m[1]); text = text.slice(m[0].length); }
+  return new Promise(async resolve => {
+    header(who, expr);
+    if (who && E[who] && E[who].map === map && scene === "map") face(E[who], me);
+    let done = false, skip = false;
+    advance = () => { if (!done) { skip = true; return; } advance = null; dlg.classList.remove("ready"); resolve(); };
+    for (let i = 1; i <= text.length; i++) {
+      if (skip || RM) break;
+      textEl.textContent = text.slice(0, i);
+      if (who && i % 3 === 0) sfx.blip();
+      await sleep(32);
+    }
+    textEl.textContent = text; done = true; dlg.classList.add("ready");
+    if (intro) know(who);
+  });
+}
+function idle(text) { header(null); textEl.className = "idle"; textEl.textContent = text; }
+function choose(opts) {
+  return new Promise(resolve => {
+    advance = null; dlg.classList.remove("ready"); choicesEl.innerHTML = ""; choicesEl.hidden = false;
+    choice = { idx: 0, resolve, btns: opts.map((o, i) => {
+      const b = document.createElement("button"); b.type = "button"; b.textContent = o;
+      b.addEventListener("click", e => { e.stopPropagation(); pickChoice(i); });
+      choicesEl.append(b); return b;
+    }) };
+    moveChoice(null);
+  });
+}
+function moveChoice(d) {
+  if (!choice) return;
+  const n = choice.btns.length;
+  if (d === "up") choice.idx = (choice.idx + n - 1) % n;
+  if (d === "down") choice.idx = (choice.idx + 1) % n;
+  choice.btns.forEach((b, i) => b.classList.toggle("sel", i === choice.idx));
+  if (d) sfx.blip();
+}
+function pickChoice(i) { const c = choice; choice = null; choicesEl.hidden = true; sfx.get(); c.resolve(i); }
+function holdA(label, ms = 1100) {
+  return new Promise(resolve => {
+    idle(label); const bar = $("#holdbar"), fill = bar.firstElementChild; bar.hidden = false;
+    let t0 = 0, raf = 0;
+    const tick = now => { const p = Math.min(1, (now - t0) / ms); fill.style.width = p * 100 + "%"; if (p >= 1) { hold = null; bar.hidden = true; resolve(); } else raf = requestAnimationFrame(tick); };
+    hold = { start() { t0 = performance.now(); cancelAnimationFrame(raf); raf = requestAnimationFrame(tick); }, stop() { cancelAnimationFrame(raf); fill.style.width = "0"; } };
+  });
+}
+function waitA(label) { return new Promise(r => { if (label) idle(label); onA = () => { onA = null; r(); }; }); }
+async function cg(n, lines) {
+  $("#cgimg").src = IMG["cg" + n].src; $("#cg").classList.add("on");
+  await sleep(700);
+  for (const [who, text] of lines) await say(who, text);
+}
+// instant = drop the CG at once (used while the screen is black, so it can't fade back into view when the black lifts)
+const cgOff = instant => { const c = $("#cg"); if (instant) { c.style.transition = "none"; c.classList.remove("on"); void c.offsetWidth; c.style.transition = ""; } else c.classList.remove("on"); };
+
+function giveCandle(id) {
+  S.got[id] = true; S.candles++;
+  $("#hud").hidden = false; $("#hud-n").textContent = `${S.candles} / 7`;
+  sfx.candle(); burst("heart", 5, E[id].x, E[id].y - 70);
+  return say(null, `得到了一根蜡烛！（${S.candles} / 7）`);
+}
+async function bless(id) { for (const l of WISHES[id]) await say(id, l); }
+function hint() {
+  if (S.party) return "自由活动时间！到处走走，和大家说说话。想结束了，就回到蛋糕旁边按 A。";
+  if (S.candles >= 7) return "蜡烛都齐了！去院子里的蛋糕那边吧。";
+  if (S.candles === 6) return "就差一根了。去找叫醒你的那只小金毛吧。";
+  if (S.quest.flowers && S.flowers < 3) return `在院子里找发光的小花（${S.flowers} / 3）。`;
+  return `点地面或用十字键走路，靠近大家按 A（或直接点它们）说话。房间下面的拱门通往院子。蜡烛 ${S.candles} / 7`;
+}
+
+/* ================= interactions ================= */
+async function interact(forced) {
+  const near = forced ? [forced, 0] : Object.values(E).filter(e => e !== me && e.visible && e.map === map)
+    .map(e => [e, Math.hypot(e.x - me.x, e.y - me.y)]).filter(([, d]) => d < 85).sort((a, b) => a[1] - b[1])[0];
+  let what = near ? near[0] === E.huahua ? "huahua" : Object.keys(E).find(k => E[k] === near[0]) : null;
+  if (!what && map === "room" && !S.has.fish && Math.hypot(me.x - 520, me.y - 596) < 60) what = "fish";
+  if (!what && map === "garden" && S.quest.flowers) {
+    const i = FLOWERS.findIndex(([x, y], i) => !S.picked[i] && Math.hypot(me.x - x, me.y - y) < 60);
+    if (i >= 0) what = "flower" + i;
+  }
+  const sp = Object.entries(MAPS[map].spots).find(([, r]) => inRect(me.x, me.y, r, 30));
+  if (!forced && S.party && what === "nono" && sp) what = sp[0];
+  if (!what && sp) what = sp[0];
+  if (!what) return;
+  busy = true; held.length = 0; me.moving = false; target = null;
+  for (const e of Object.values(E)) if (e.amb && e.amb.state === "go") { e.moving = false; e.amb = { state: "rest", until: clock + 3000 }; }
+  if (near) face(me, near[0]);
+  try { await (what.startsWith("flower") ? pickFlower(+what.slice(6)) : what.startsWith("flora") ? flora(+what.slice(5)) : S.party && PARTY[what] ? PARTY[what]() : ACT[what]?.()); }
+  finally { if (scene === "map") { busy = false; idle(hint()); } }
+}
+async function pickFlower(i) {
+  S.picked[i] = true; S.flowers++; sfx.get();
+  await say(null, `摘到了一朵小花。（${S.flowers} / 3）`);
+  if (S.flowers === 3) await say(null, "三朵都齐了！拿去给野餐垫那边的两只雪纳瑞吧。");
+}
+const ACT = {
+  async huahua() {
+    if (S.candles >= 7) return say("huahua", "大家都在院子里等你哦！蛋糕那边～");
+    if (S.candles === 6) {
+      await say("huahua", "[大笑]都找到啦？好厉害！");
+      await say("huahua", "[脸红]那……我的这根，最后给你。");
+      await bless("huahua"); await giveCandle("huahua");
+      await say("huahua", "走吧，我们去院子里！");
+      return movePartyToGarden();
+    }
+    const left = [];
+    if (!S.got.momo) left.push("窗户底下那只小黑猫在发呆。它好像想要什么东西……");
+    if (!S.got.xiaomao) left.push("那只小白猫刚才一直在床边滚来滚去。");
+    if (!S.nono) left.push("有一只小蓝猫又不知道躲到哪里去了。它最喜欢钻箱子。");
+    if (!S.got.yuanyuan) left.push("旁边这只小橘猫有点害羞。你慢慢跟她说话就好。");
+    if (!S.got.xhb) left.push("院子里还有两只雪纳瑞，正在野餐垫那边忙着呢。");
+    await say("huahua", "[开心]每个人都藏了一根蜡烛要给你哦。");
+    await say("huahua", left[0] || "还差一点点！");
+  },
+  async yuanyuan() {
+    if (S.got.yuanyuan) return say("yuanyuan", "[撒娇]（蹭蹭你的爪子）……嘿嘿。");
+    await say("yuanyuan", "[脸红]……（往花花身边缩了缩）");
+    const c = await choose(["蹲下来，等她一下", "小声说：你好呀"]);
+    if (c === 0) await say(null, "你趴下来，和她一样高。过了一会儿，一个橘色的小脑袋慢慢靠了过来。");
+    await say("yuanyuan", "[脸红]……你、你好。我是媛媛。", true);
+    await say("yuanyuan", "[脸红]这个……给你。我一直攥着，有点热了。");
+    await bless("yuanyuan"); await giveCandle("yuanyuan");
+    await cg(2, [[null, "说完，媛媛一溜烟跑回花花身边，一头扎进花花怀里。"], ["huahua", "[爱心眼]她就是这样，说完心里话就要抱抱。"], ["yuanyuan", "[脸红]（闷闷的声音）……嗯。"]]);
+    cgOff();
+  },
+  async momo() {
+    if (S.got.momo) return say("momo", "[平静]……（尾巴尖轻轻晃了一下）");
+    if (!S.has.fish) {
+      await say("momo", "[平静]……");
+      return say(null, "它看了你一眼，又看了一眼地上那只小鱼玩具。");
+    }
+    await say(null, "你把小鱼玩具放在它面前。");
+    await say("momo", "[脸红]……谢谢。");
+    await say("momo", "[平静]我叫默默。蛋糕上的奶油，是我抹平的。", true);
+    await bless("momo"); await giveCandle("momo");
+  },
+  async fish() { S.has.fish = true; sfx.get(); await say(null, "捡到了一只小鱼玩具。上面有几个小小的牙印。"); },
+  async xiaomao() {
+    if (S.got.xiaomao) return say("xiaomao", "[撒娇]好看吗好看吗？今天的我是不是特别好看！");
+    if (!S.has.ribbon) {
+      S.quest.ribbon = true;
+      await say("xiaomao", "[大笑]啊！你醒啦！我叫小猫，对，就叫小猫，不许笑！", true);
+      await say("xiaomao", "[哭泣]可是……我的蝴蝶结不见了！专门给你过生日戴的！");
+      return say("xiaomao", "[哭泣]刚才还在床那边滚来滚去来着……");
+    }
+    await say("xiaomao", "[爱心眼]找到了！！你最好了！");
+    await say(null, "它歪着头，让你帮它把蝴蝶结戴好。");
+    await bless("xiaomao"); await giveCandle("xiaomao");
+  },
+  async bed() {
+    if (S.quest.ribbon && !S.has.ribbon && !S.got.xiaomao) {
+      await say(null, "床底下有什么东西在闪……");
+      S.has.ribbon = true; sfx.get();
+      return say(null, "找到了一个粉色的蝴蝶结！");
+    }
+    return say(null, "软软的床。你刚才就是在这里醒过来的。");
+  },
+  async box() {
+    if (S.nono) return say(null, "空箱子。里面还留着几根蓝灰色的毛。");
+    await say(null, "箱子在动。");
+    const c = await choose(["敲敲箱子", "直接掀开盖子"]);
+    if (c === 0) await say(null, "咚咚。箱子里传来很小声的：“……No。”");
+    S.nono = true;
+    const np = [[880, 566], [930, 610], [820, 610], [930, 520]].find(([x, y]) => Math.hypot(x - me.x, y - me.y) > 50 && free(x, y, E.nono)) || [880, 566];
+    Object.assign(E.nono, { visible: true, x: np[0], y: np[1] }); face(me, E.nono);
+    burst("conf", 24, 980, 520); sfx.get();
+    await say("nono", "[惊讶]No！！你怎么找到我的！");
+    await say("nono", "[生气]我是 NoNo！本来想让你找半天的……", true);
+    await say("nono", "No，算了，生日快乐优先！");
+    await bless("nono"); await giveCandle("nono");
+  },
+  async nono() { return say("nono", "[撒娇]No 打扰，我在偷偷练生日歌。"); },
+  async laptop() { return say(null, "一台和你那台一模一样的电脑。屏幕上只写着一行字：今天不用加班。"); },
+  async shelf() { return say(null, "书架上摆着几本相册，还有一张大家挤在一起的合照。"); },
+  async plant() { return say(null, "一盆被照顾得很好的小植物，叶子上还有水珠。"); },
+  async window() { return say(null, "窗外全是星星。好像离地球很远，又好像很近。"); },
+  async table() { return say(null, "桌上有一个小蛋糕，边上被谁偷偷舔掉了一小口。"); },
+  async door() { return say(null, "一扇关着的小拱门，上面缠着小花。门外就是院子，走到门口就能推门出去。"); },
+  async xhb() { return couple("xhb"); },
+  async chacha() { return couple("chacha"); },
+  async cake() {
+    if (S.candles < 7) return say(null, `好大的草莓蛋糕！上面空着七个插蜡烛的小洞。（${S.candles} / 7）`);
+    return finale();
+  },
+  async pond() { return say(null, "小池塘里有两片荷叶，水里倒映着天空。"); },
+  async swing() { return say(null, "一架木头秋千，被风吹得轻轻晃。"); },
+  async bench() { return say(null, "长椅上暖暖的，好像刚刚有谁坐过。"); },
+  async bowls() { return say(null, "两个饭碗，一个红的，一个蓝的。都被舔得干干净净。"); },
+  async dogbed() { return say(null, "一个软软的狗窝。尺寸看起来……刚好够两只雪纳瑞挤在一起。"); },
+  async house() { return say(null, "是刚才那个房间。从门口走进去就能回去。"); },
+};
+async function couple(who) {
+  const other = who === "xhb" ? "chacha" : "xhb";
+  if (S.got.xhb) return say(who, who === "xhb" ? "[大笑]茶茶说我今天的胡子特别帅。（得意）" : "[脸红]他今天特别乖。……嗯，平时也乖。");
+  if (!S.quest.flowers) {
+    S.quest.flowers = true;
+    await say("xhb", "[大笑]啊！寿星来啦！我是蟹黄堡！", true);
+    await say("chacha", "[脸红]我是茶茶。我们俩……嗯，是一对。", true);
+    await say("xhb", "[生气]我们正在吵架！蛋糕旁边要放花，还是放草莓？");
+    await say("chacha", "[平静]要放花。");
+    await say("xhb", "[大笑]那就放花！（秒答）");
+    await say("chacha", "[哭泣]……可是我们俩都不敢离开蛋糕，怕 NoNo 和小猫来偷吃。");
+    return say("xhb", "你能帮我们摘三朵花吗？院子里会发光的那几朵！");
+  }
+  if (S.flowers < 3) return say(other, `还差 ${3 - S.flowers} 朵～发光的那种！`);
+  await say(null, "你把三朵小花放在蛋糕旁边。");
+  await say("chacha", "[开心]好看。");
+  await say("xhb", "[爱心眼]好看！跟茶茶一样好看！");
+  await say("chacha", "[脸红]……别闹。");
+  await say("xhb", "那我们也有礼物给你——一人一根！");
+  await bless("xhb"); await giveCandle("xhb");
+  await bless("chacha"); await giveCandle("chacha");
+}
+async function movePartyToGarden() {
+  $("#fade").classList.add("on"); await sleep(500);
+  const spots = { huahua: [760, 470], yuanyuan: [712, 500], momo: [1060, 470], xiaomao: [1078, 540], nono: [1010, 590] };
+  for (const [k, [x, y]] of Object.entries(spots)) Object.assign(E[k], { map: "garden", x, y, visible: true, dir: "down" });
+  map = "garden"; me.map = "garden"; me.x = 618; me.y = 255; me.dir = "down";
+  await sleep(200); $("#fade").classList.remove("on"); await sleep(300);
+  await say(null, "大家已经围在蛋糕旁边了。走过去，把蜡烛插上吧。");
+}
+
+/* ================= story ================= */
+// paper confetti popping out of the box when it opens
+function burstOpen() {
+  if (RM) return;
+  const o = $("#open"), r = $("#giftbox").getBoundingClientRect(), orr = o.getBoundingClientRect(), k = orr.width / o.offsetWidth;
+  const cx = (r.left + r.width / 2 - orr.left) / k, cy = (r.top + r.height * .58 - orr.top) / k;
+  const cols = ["#f2a7b0", "#f6c55a", "#a8cfe8", "#bfe3d0", "#cdbdf0"];
+  for (let i = 0; i < 36; i++) {
+    const d = document.createElement("i"), a = -Math.PI / 2 + (Math.random() - .5) * 2.2, v = 120 + Math.random() * 160;
+    d.style.cssText = `position:absolute;left:${cx}px;top:${cy}px;width:8px;height:5px;border-radius:2px;background:${cols[i % 5]};pointer-events:none`;
+    o.append(d);
+    d.animate([{ transform: "translate(0,0) rotate(0)" }, { transform: `translate(${Math.cos(a) * v}px, ${Math.sin(a) * v + 220}px) rotate(${Math.random() * 720}deg)`, opacity: 0 }],
+      { duration: 1400 + Math.random() * 700, easing: "cubic-bezier(.2,.7,.4,1)" }).onfinish = () => d.remove();
+  }
+}
+async function opening() {
+  const box = $("#giftbox");
+  await new Promise(r => box.addEventListener("click", r, { once: true }));
+  audio();
+  box.classList.add("shake"); tone(523, 0, .2, .05); await sleep(500);
+  box.classList.add("open"); [523, 659, 784, 1047].forEach((f, i) => tone(f, i * .1, .6, .05, "sine"));
+  $("#openhint").textContent = "里面是一台小小的游戏机。屏幕上写着：晨钰。";
+  await sleep(1100);
+  $("#play").hidden = false; $("#play").focus({ preventScroll: true });
+  await new Promise(r => $("#play").addEventListener("click", r, { once: true }));
+  bgmWanted = true; audio();
+  $("#open").style.opacity = 0; await sleep(700); $("#open").hidden = true;
+}
+async function intro() {
+  await ready;
+  idle("……");
+  await opening();
+  scene = "desk";
+  $("#caption").innerHTML = `<div class="small">10 月 23 日 · 夜里 · 阿根廷</div><div class="big">今天也在加班</div>`;
+  for (let i = 0; i < 3; i++) {
+    await waitA(["还有一点点就做完了。按 A（或点屏幕）继续敲键盘。", "眼皮有一点点重……再按一下。", "……屏幕上的字开始游来游去了。再按一下。"][i]);
+    for (let k = 0; k < 6; k++) { sfx.type(); await sleep(70); }
+    deskStage = i + 1;
+  }
+  $("#caption").innerHTML = "";
+  idle("……");
+  await sleep(1200);
+  $("#fade").classList.add("on"); await sleep(900);
+  scene = "black"; await sleep(1200);
+  await blink();
+  wake();
+}
+async function blink() {
+  scene = "pov"; cv.classList.add("blur");
+  $("#blink").hidden = false; setLids(0);
+  $("#fade").classList.remove("on");
+  $("#whisper").textContent = "……好暖和。有很多很多心跳声。";
+  const whispers = ["“嘘——她是不是要醒了？”", "“真的吗真的吗！让我看看！”\n“你别挤……”"];
+  for (let step = 0; step < 3; step++) {
+    await waitA(step ? "再眨一下。" : "按 A（或点屏幕），眨眨眼。");
+    $("#whisper").style.opacity = 0;
+    setLids([18, 40, 100][step]);
+    if (step < 2) {
+      await sleep(650); setLids(0); await sleep(400);
+      $("#whisper").textContent = whispers[step]; $("#whisper").style.opacity = 1;
+    } else { cv.classList.remove("blur"); await sleep(500); $("#blink").hidden = true; }
+  }
+}
+function setLids(p) { $("#lid-top").style.transform = `translateY(-${p}%)`; $("#lid-bot").style.transform = `translateY(${p}%)`; }
+
+async function wake() {
+  busy = true;
+  await say(null, "你睁开眼。一只小金毛正低头看着你，眼睛亮亮的。");
+  // 爪子搭上来的那一刻，直接切到 CG1
+  tone(660, 0, .3, .05, "sine");
+  await cg(1, [[null, "有一只毛茸茸的爪子，轻轻搭在了你的头上。"], ["huahua", "[开心]醒啦？"], ["huahua", "[大笑]快过来吧，大家都准备给你过生日呢！"]]);
+  await say(null, "原来你在一个陌生又暖和的小房间里。");
+  $("#fade").classList.add("on"); await sleep(600);
+  cgOff(true); scene = "map"; map = "room";
+  await sleep(200); $("#fade").classList.remove("on"); await sleep(500);
+  const sx = me.x, sy = me.y, t0 = performance.now();
+  await new Promise(r => (function f(now) {
+    const p = Math.min(1, (now - t0) / 420);
+    me.y = sy + (452 - sy) * p - Math.sin(p * Math.PI) * 30;
+    if (p < 1) requestAnimationFrame(f); else r();
+  })(t0));
+  me.y = 452; me.dir = "right";
+  await say("huahua", "[大笑]我是花花！这里是……嗯，你的梦里面。", true);
+  await say("huahua", "你工作到睡着啦。所以我们趁这个时候，偷偷来给你过生日。");
+  await say("huahua", "大家每个人都藏了一根蜡烛要给你。去找它们要吧！");
+  await say("huahua", "[撒娇]我的那根嘛……最后再给你～");
+  await walk(E.huahua, [[466, 572], [372, 572]]);
+  E.huahua.dir = "down";
+  await say(null, "点地面就能走过去，点大家就能说话。也可以用十字键和 A。房间下面的拱门通往院子。");
+  $("#hud").hidden = false;
+  busy = false; idle(hint());
+}
+
+async function finale() {
+  busy = true;
+  await say(null, "你把七根蜡烛，一根一根插在蛋糕上。");
+  S.placed = true;
+  await say("huahua", "[大笑]大家快过来——！");
+  $("#fade").classList.add("on"); await sleep(600);
+  const spots = { me: [943, 540], huahua: [840, 470], yuanyuan: [800, 520], momo: [1050, 470], xiaomao: [1080, 525], nono: [1025, 585], xhb: [868, 580], chacha: [1062, 412] };
+  for (const [k, [x, y]] of Object.entries(spots)) Object.assign(E[k], { map: "garden", visible: true, x, y, dir: "up" });
+  E.huahua.dir = "right"; E.yuanyuan.dir = "right"; E.momo.dir = "left"; E.xiaomao.dir = "left"; E.chacha.dir = "left";
+  map = "garden"; me.map = "garden";
+  S.lit = true; night = .4;
+  $("#fade").classList.remove("on"); await sleep(600);
+  await say("huahua", "蜡烛点好啦！那我们开始唱啦——");
+  await sing();
+  await say("yuanyuan", "[脸红]该许愿啦。闭上眼睛，我们不偷看。");
+  await say("xiaomao", "NoNo，你转过去！");
+  await say("nono", "[生气]No！……好吧。");
+  $("#wish").hidden = false; idle("……");
+  await new Promise(r => $("#wish-done").onclick = r);
+  $("#wish").hidden = true; sfx.get();
+  await say(null, "深吸一口气——");
+  await holdA("按住 A（或按住屏幕），吹蜡烛！");
+  S.lit = false; night = .15;
+  burst("conf", 90, 943, 380);
+  Object.values(E).forEach(e => { if (e !== me) e.dance = true; });
+  sfx.candle();
+  await say(null, "“生日快乐——！！！”");
+  Object.values(E).forEach(e => e.dance = false);
+  night = .2;
+  await say("huahua", "[大笑]愿望许好啦！那接下来——自由活动时间！");
+  await say("xiaomao", "[大笑]我去支麻将桌！");
+  await say("xhb", "[开心]茶茶，我们的手工还没做完！");
+  await say("nono", "[撒娇]No……那我、我就待在寿星旁边好了。");
+  $("#fade").classList.add("on"); await sleep(500);
+  startParty();
+  $("#fade").classList.remove("on"); await sleep(300);
+  await say(null, "大家散开了，各自去做喜欢的事。到处走走，和大家说说话吧。玩够了，就回到蛋糕旁边。");
+}
+
+/* ================= while you explore: friends wander, snuggle, do their own thing ================= */
+const PAIR = { xhb: "chacha", chacha: "xhb" };
+const ROAM = { huahua: 70, yuanyuan: 60, momo: 50, xiaomao: 110, nono: 90, xhb: 50, chacha: 50 };
+function pathClear(x0, y0, x1, y1) { for (let i = 1; i <= 8; i++) if (!walkable(x0 + (x1 - x0) * i / 8, y0 + (y1 - y0) * i / 8)) return false; return true; }
+function pickAmb(k, e) {
+  const A = e.amb, mate = PAIR[k] && E[PAIR[k]];
+  let to = null;
+  if (A.back) { A.back = false; if (pathClear(e.x, e.y, e.home[0], e.home[1])) to = [e.home[0], e.home[1]]; }
+  if (!to && mate && mate.visible && mate.map === e.map && Math.random() < .45 && !(mate.amb && mate.amb.state === "go")) {
+    const sx = mate.x + (e.x < mate.x ? -28 : 28), sy = mate.y + 4;
+    if (walkable(sx, sy) && pathClear(e.x, e.y, sx, sy) && Math.hypot(sx - me.x, sy - me.y) > 40) { e.amb = { state: "go", x: sx, y: sy, snug: mate }; return; }
+  }
+  for (let i = 0; !to && i < 8; i++) {
+    const a = Math.random() * Math.PI * 2, r = (ROAM[k] || 60) * (.4 + Math.random() * .6);
+    const tx = e.home[0] + Math.cos(a) * r, ty = e.home[1] + Math.sin(a) * r * .7;
+    if (walkable(tx, ty) && pathClear(e.x, e.y, tx, ty) && Math.hypot(tx - me.x, ty - me.y) > 40) to = [tx, ty];
+  }
+  if (to) e.amb = { state: "go", x: to[0], y: to[1] };
+  else e.amb = { state: "rest", until: clock + 2000 };
+}
+function ambientTick(dt) {
+  for (const [k, e] of Object.entries(E)) {
+    if (e === me || !e.visible || e.map !== map || !e.home || (k === "nono" && !S.nono)) continue;
+    if (k === "yuanyuan" && E.huahua.visible && E.huahua.map === e.map) { stickToHuahua(e, dt); continue; }
+    if (!e.amb) e.amb = { state: "rest", until: clock + 1500 + Math.random() * 4000 };
+    const A = e.amb;
+    if (A.state === "rest") { if (clock > A.until && !(e.heldUntil > clock)) pickAmb(k, e); continue; }
+    if (steer(e, A.x, A.y, .055, dt)) {
+      e.moving = false;
+      if (A.snug) { // 贴贴
+        face(e, A.snug); face(A.snug, e); A.snug.heldUntil = clock + 3800;
+        burst("heart", 3, (e.x + A.snug.x) / 2, e.y - 60);
+        e.amb = { state: "rest", until: clock + 3800, back: true };
+      } else e.amb = { state: "rest", until: clock + 2500 + Math.random() * 5000 };
+    }
+  }
+}
+
+// 媛媛跟着花花：站在花花身旁固定的一侧，花花走她就用差不多的速度一起走（不走走停停），换边时从花花身前绕过去，不穿过她
+function followHuahua(e, dt) {
+  const hh = E.huahua;
+  const hv = Math.hypot(hh.x - (e.hlx ?? hh.x), hh.y - (e.hly ?? hh.y)) / Math.max(dt, 1); e.hlx = hh.x; e.hly = hh.y;
+  if (e.side == null || Math.hypot(e.x - hh.x, e.y - hh.y) > 120) e.side = e.x < hh.x ? -1 : 1;
+  let tx = hh.x + e.side * 26, ty = hh.y + 5;
+  if (!walkable(tx, ty)) { e.side = -e.side; tx = hh.x + e.side * 26; }
+  let gx = tx, gy = ty;
+  if ((e.x - hh.x) * (tx - hh.x) < 0 && Math.abs(e.x - hh.x) > 4) { gx = hh.x + Math.sign(e.x - hh.x) * 8; gy = hh.y + 22; } // 先绕到花花身前
+  const dx = gx - e.x, dy = gy - e.y, d = Math.hypot(dx, dy);
+  if (!e.fol && d > 10) e.fol = true;
+  if (e.fol && d < 1.5 && hv < .01) e.fol = false;
+  if (!e.fol || d < .3) { e.moving = false; return false; }
+  const st = Math.min(d, Math.min(.14, hv + .02 + d * .0012) * dt), nx = e.x + dx / d * st, ny = e.y + dy / d * st;
+  if (walkable(nx, ny)) { e.x = nx; e.y = ny; }
+  else if (walkable(nx, e.y)) e.x = nx;
+  else if (walkable(e.x, ny)) e.y = ny;
+  else { e.fol = false; e.moving = false; return false; }
+  e.dir = hv > .01 && d < 14 ? hh.dir : dirOf(dx, dy); e.moving = true;
+  return true;
+}
+// 媛媛总是黏在花花身边，隔一会儿两只就贴贴一下
+function stickToHuahua(e, dt) {
+  const hh = E.huahua;
+  if (followHuahua(e, dt)) return;
+  if (!hh.moving) face(e, hh);
+  if (!e.snugT) e.snugT = clock + 3000 + Math.random() * 3000;
+  if (clock > e.snugT && !hh.moving) {
+    e.snugT = clock + 5000 + Math.random() * 4000;
+    face(e, hh); face(hh, e); hh.heldUntil = clock + 2500;
+    e.act = { type: "hop", t0: clock, dur: 520 }; hh.act = { type: "wiggle", t0: clock, dur: 700 };
+    burst("heart", 3, (e.x + hh.x) / 2, hh.y - 62);
+  }
+}
+
+/* ================= free time after the candles ================= */
+const MAHJONG = [612, 446, 672, 486];
+const WALK = [[700, 300], [880, 330], [700, 300], [560, 300], [470, 440], [300, 470], [150, 390], [300, 470], [470, 440], [560, 300]];
+const P = { wp: 0, wait: 2000 };
+function startParty() {
+  S.party = true; S.pt = S.pt || {}; P.wp = 0; P.wait = 2000;
+  MAPS.garden.walls.push(MAHJONG);
+  const at = { huahua: [700, 300, "left"], yuanyuan: [728, 306, "left"], xiaomao: [596, 468, "right"], momo: [315, 442, "up"], xhb: [990, 522, "right"], chacha: [1068, 522, "left"], nono: [896, 566, "right"] };
+  for (const [k, [x, y, dir]] of Object.entries(at)) Object.assign(E[k], { map: "garden", visible: true, x, y, dir, moving: false });
+  map = "garden"; me.map = "garden"; me.x = 943; me.y = 540; me.dir = "down";
+}
+function steer(e, x, y, sp, dt) {
+  const dx = x - e.x, dy = y - e.y, d = Math.hypot(dx, dy);
+  if (d < 2) { e.moving = false; return true; }
+  const st = Math.min(d, sp * dt); e.x += dx / d * st; e.y += dy / d * st; e.dir = dirOf(dx, dy); e.moving = true;
+  return false;
+}
+function partyTick(dt) {
+  // 花花和媛媛：一起慢慢散步，走走停停，黏在一起
+  const hh = E.huahua, yy = E.yuanyuan;
+  if (P.wait > 0) {
+    P.wait -= dt; hh.moving = false;
+    if (map === "garden" && Math.random() < dt / 1400) burst("heart", 1, (hh.x + yy.x) / 2, hh.y - 66);
+  } else if (steer(hh, ...WALK[P.wp], .07, dt)) { P.wp = (P.wp + 1) % WALK.length; P.wait = 1800 + Math.random() * 2500; }
+  if (!followHuahua(yy, dt)) yy.dir = hh.moving ? hh.dir : dirOf(hh.x - yy.x, hh.y - yy.y);
+  // NoNo：对晨钰很好奇，一直跟在她后面
+  const nn = E.nono;
+  if (nn.map === map) {
+    const d = Math.hypot(nn.x - me.x, nn.y - me.y);
+    if (d > 72) steer(nn, me.x + (nn.x - me.x) / d * 56, me.y + (nn.y - me.y) / d * 56, .21, dt);
+    else { nn.moving = false; face(nn, me); }
+  }
+}
+function bubble(e, text, offset) {
+  const t = (clock + offset) % 3000; if (t > 1900) return;
+  g.font = "bold 15px 'ZCOOL KuaiLe', sans-serif";
+  const w = g.measureText(text).width + 16, x = e.x - w / 2, y = e.y - HEIGHT[e.id] - 30;
+  g.fillStyle = "rgba(255,250,240,.95)"; g.strokeStyle = "#2b2230"; g.lineWidth = 2;
+  g.beginPath(); g.roundRect(x, y, w, 24, 10); g.fill(); g.stroke();
+  g.beginPath(); g.moveTo(e.x - 5, y + 24); g.lineTo(e.x, y + 31); g.lineTo(e.x + 5, y + 24); g.fill();
+  g.fillStyle = "#2b2230"; g.textAlign = "center"; g.fillText(text, e.x, y + 17); g.textAlign = "start";
+}
+function drawBubbles() {
+  const pick = (arr, off) => arr[Math.floor((clock + off) / 3000) % arr.length];
+  bubble(E.xiaomao, pick(["碰！", "杠！", "三缺三……", "哗啦啦"], 0), 0);
+  bubble(E.momo, pick(["……", "（发呆）", "……云。"], 900), 900);
+  bubble(E.xhb, pick(["咔嚓咔嚓", "贴这里！", "又歪了…"], 1700), 1700);
+  bubble(E.chacha, pick(["别动", "好看", "笨蛋"], 200), 200);
+}
+function drawPartyProps() {
+  // 小猫的麻将桌
+  const [x0, y0, x1, y1] = MAHJONG;
+  g.fillStyle = "rgba(60,40,30,.2)"; g.beginPath(); g.ellipse((x0 + x1) / 2, y1 + 4, 40, 7, 0, 0, 7); g.fill();
+  g.fillStyle = "#9a6a43"; g.strokeStyle = "#2b2230"; g.lineWidth = 2.5;
+  g.fillRect(x0 + 4, y1 - 14, 6, 16); g.fillRect(x1 - 10, y1 - 14, 6, 16);
+  g.beginPath(); g.roundRect(x0, y0, x1 - x0, y1 - y0 - 12, 5); g.fill(); g.stroke();
+  g.fillStyle = "#4f9a6b"; g.fillRect(x0 + 5, y0 + 5, x1 - x0 - 10, y1 - y0 - 22);
+  for (let i = 0; i < 6; i++) {
+    g.fillStyle = "#fffaf0"; g.strokeStyle = "#2b2230"; g.lineWidth = 1;
+    g.fillRect(x0 + 9 + i * 7.5, y0 + 7, 6, 7); g.strokeRect(x0 + 9 + i * 7.5, y0 + 7, 6, 7);
+    g.fillRect(x0 + 9 + i * 7.5, y1 - 26, 6, 7); g.strokeRect(x0 + 9 + i * 7.5, y1 - 26, 6, 7);
+  }
+  g.fillStyle = "#e0565b"; g.fillRect(x0 + 27, y0 + 16, 6, 6);
+  // 雪纳瑞的手工：彩纸、剪刀、做了一半的蓝格子派对帽
+  const cx = 1029, cy = 520;
+  g.save(); g.translate(cx, cy); g.rotate(-.15);
+  g.fillStyle = "#f6c9d0"; g.strokeStyle = "#2b2230"; g.lineWidth = 1.5; g.fillRect(-22, -8, 26, 18); g.strokeRect(-22, -8, 26, 18);
+  g.fillStyle = "#cfe3f6"; g.beginPath(); g.moveTo(8, 10); g.lineTo(18, -16); g.lineTo(28, 10); g.closePath(); g.fill(); g.stroke();
+  g.strokeStyle = "#7fa6d6"; g.beginPath(); g.moveTo(12, 0); g.lineTo(24, 0); g.moveTo(15, -8); g.lineTo(21, -8); g.stroke();
+  g.fillStyle = "#fff"; g.strokeStyle = "#2b2230"; g.beginPath(); g.arc(18, -17, 3, 0, 7); g.fill(); g.stroke();
+  g.restore();
+  if (Math.random() < .01) burst("conf", 2, cx, cy - 10);
+}
+/* 自由活动时每只小动物的关心和祝福，聊完第一次之后轮流说 */
+const CARE = {
+  huahua: ["[开心]工作很重要，可是你更重要。这句要记住哦。", "[撒娇]下次累了不要硬撑。闭上眼睛，我就来接你。", "[爱心眼]你知道吗，你笑起来的时候尾巴也会一起摇。好可爱。", "[平静]地球那么大。可是想你的时候，就觉得没有很远。", "[大笑]新的一岁，要吃很多好吃的！阿根廷的烤肉！"],
+  yuanyuan: ["[脸红]……晨钰，你要按时吃饭。", "[撒娇]晚上不要熬太晚。……我会担心。", "[开心]今天的你看起来很开心。我也很开心。", "[平静]要是有不开心的事，可以小声告诉我。我不会说出去的。", "[脸红]……我也想像花花那样，给你一个抱抱。可以吗？"],
+  nono: ["[生气]No！我才没有跟着你！我只是刚好也往这边走。", "[撒娇]……你身上有奶油的味道。好香。", "[脸红]No……你走慢一点嘛，我腿短。", "[爱心眼]寿星今天是全院子最好看的萨摩耶。No，是全世界。", "[开心]No 想你的时候，就去箱子里坐一会儿。箱子里很暖和，像你。", "[哭泣]……你醒了以后，还会记得 NoNo 吗？一定要记得哦。"],
+  xiaomao: ["[大笑]下次来我请你吃小鱼干！……不对，你是狗。那请你吃骨头！", "[撒娇]新的一岁，想做什么就去做！我给你加油！", "[生气]在那边要是有人欺负你，告诉我，我去挠他！", "[爱心眼]今天的蝴蝶结，是专门为你戴的哦。"],
+  momo: ["[平静]……累了的话，发呆也可以。什么都不想，也可以。", "[开心]……天上有一颗星星，在阿根廷那边也看得到。", "[脸红]……生日快乐。……再说一遍，生日快乐。", "[平静]……慢慢来。你已经做得很好了。"],
+  xhb: ["[大笑]祝你新的一岁钱多多，班少少！", "[开心]我和茶茶会把院子收拾好，等你下次再来！", "[爱心眼]你知道吗，茶茶说你是她见过最温柔的萨摩耶。"],
+  chacha: ["[平静]在那边要照顾好自己。天冷了记得加衣服。", "[脸红]……他刚才偷偷擦眼泪，说是灰尘。", "[开心]想家的时候，就想想这个院子。我们一直在这里。"],
+};
+function care(k) { S.pt["c" + k] = (S.pt["c" + k] || 0) + 1; return say(k, CARE[k][(S.pt["c" + k] - 1) % CARE[k].length]); }
+/* 院子里的花花草草 */
+const FLORA = [
+  [280, 178, "pink"], [228, 225, "pink"], [102, 312, "pink"], [106, 410, "pink"], [74, 440, "pink"], [228, 498, "pink"], [232, 618, "pink"], [292, 625, "pink"],
+  [385, 135, "yellow"], [425, 112, "yellow"], [592, 372, "yellow"], [598, 602, "yellow"], [680, 640, "pink"], [722, 610, "pink"], [766, 645, "yellow"],
+  [785, 268, "yellow"], [836, 262, "pink"], [845, 135, "pink"], [915, 178, "pink"], [1190, 305, "pink"], [1205, 385, "pink"], [1172, 420, "pink"],
+  [128, 225, "tree"], [128, 560, "tree"], [1110, 220, "tree"], [1185, 585, "tree"], [1030, 640, "bush"], [392, 662, "bush"], [460, 285, "arch"],
+];
+// trees / bushes / the arch use their whole footprint so you can reach them from any side
+const BIG = { "128,225": [40, 180, 215, 272], "128,560": [40, 462, 214, 664], "1110,220": [1132, 180, 1235, 288], "1185,585": [1098, 470, 1270, 700],
+  "1030,640": [940, 574, 1128, 700], "392,662": [332, 626, 452, 700], "460,285": [393, 238, 528, 332] };
+FLORA.forEach(([x, y], i) => MAPS.garden.spots["flora" + i] = BIG[x + "," + y] || [x - 16, y - 16, x + 16, y + 16]);
+const FLORA_LINES = {
+  pink: ["粉色的小花。凑近闻一闻，是甜甜的味道。", "花瓣上写着很小很小的字：「晨钰，今天也辛苦啦。」", "这朵花朝你歪了歪脑袋，好像在说：生日快乐。", "你轻轻碰了一下，花瓣抖了抖，落下一点亮晶晶的花粉。", "风吹过来，一整排小花一起向你点了点头。"],
+  yellow: ["黄色的小花，像一个个小太阳。阿根廷的春天，是不是也开着这样的花？", "花心里躲着一只小蜜蜂，它嗡嗡地说：生日快乐！", "这朵花开得特别用力，好像知道今天有人过生日。", "闻起来有一点点蜂蜜的味道。"],
+  tree: ["大树的影子凉凉的。树干上有七道小小的爪印，是大家量身高留下的。最新的一道，刚好是你的高度。", "树叶沙沙地响，像很多声音在小声说：累了就靠一会儿。", "你靠着大树坐了一下。很稳，很安心。"],
+  bush: ["灌木丛里窸窸窣窣的……飞出来一只小蝴蝶，绕着你转了一圈。", "灌木丛修得圆圆的，像一个大大的抱抱。"],
+  arch: ["花拱门上缠满了小白花。从下面走过去，像在走一条只为你铺的小路。", "拱门顶上挂着一块小木牌：欢迎回家，晨钰。"],
+};
+async function flora(i) {
+  const kind = FLORA[i][2], L = FLORA_LINES[kind];
+  S.fl = S.fl || {}; S.fl[kind] = (S.fl[kind] || 0) + 1;
+  if (kind === "pink" || kind === "yellow") burst("heart", 2, FLORA[i][0], FLORA[i][1] - 20);
+  return say(null, L[(S.fl[kind] - 1) % L.length]);
+}
+const PARTY = {
+  async huahua() {
+    S.pt.huahua = (S.pt.huahua || 0) + 1;
+    if (S.pt.huahua === 1) {
+      await say("huahua", "[爱心眼]我和媛媛在散步～她说走累了就要我背。");
+      await say("yuanyuan", "[脸红]……我没有说。");
+      return say("huahua", "[撒娇]那就是我想背她。");
+    }
+    if (S.pt.huahua === 2) return say("huahua", "[开心]你也去玩吧！NoNo 好像一直跟着你哦。");
+    return care("huahua");
+  },
+  async yuanyuan() {
+    if (S.pt.yy) return care("yuanyuan");
+    S.pt.yy = 1;
+    await say("yuanyuan", "[脸红]……我们没有黏在一起。");
+    await say(null, "媛媛说完，又往花花那边挪了挪。");
+    burst("heart", 4, E.yuanyuan.x, E.yuanyuan.y - 60);
+  },
+  async nono() { return care("nono"); },
+  async xiaomao() {
+    if (S.pt.xm && S.pt.xm++ % 3) return care("xiaomao");
+    S.pt.xm = S.pt.xm || 1;
+    await say("xiaomao", "[大笑]来来来！三缺一，寿星来凑一桌！");
+    await say("xiaomao", "[哭泣]……好吧，其实是三缺三。大家都不陪我打。");
+    const c = await choose(["坐下来陪它打一圈", "在旁边看着"]);
+    if (c === 0) {
+      await say(null, "哗啦啦——你们把牌码好，一人摸一张。");
+      await say(null, "你摸到第三张的时候，牌就齐了。");
+      await say("xiaomao", "[惊讶]你、你天胡？！");
+      return say("xiaomao", "[大笑]寿星手气果然不一样！再来一圈！");
+    }
+    return say("xiaomao", "[撒娇]那你帮我看着牌！不许告诉 NoNo 我手里有什么！");
+  },
+  async momo() {
+    if (S.pt.mm) return care("momo");
+    S.pt.mm = 1;
+    await say("momo", "[困倦]……");
+    await say(null, "默默坐在池塘边，看着水面上的荷叶，一动不动。");
+    const c = await choose(["坐在它旁边，一起发呆", "小声问：你在看什么？"]);
+    if (c === 0) {
+      await say(null, "你在默默旁边坐下。风很轻，水面亮亮的。谁也没有说话。");
+      return say("momo", "[脸红]……这样就很好。");
+    }
+    await say("momo", "[平静]……云。水里也有一片。");
+    return say("momo", "[开心]你看，像不像你的尾巴。");
+  },
+  async xhb() { return S.pt.craft > 1 ? care("xhb") : craft(); },
+  async chacha() { return S.pt.craft > 1 ? care("chacha") : craft(); },
+  async cake() {
+    await say(null, "蛋糕还剩好大一块。远处，天边好像亮了一点点。");
+    return farewell();
+  },
+};
+async function craft() {
+  if (!S.pt.craft) {
+    S.pt.craft = 1;
+    await say("xhb", "[大笑]寿星！我们在做手工！");
+    await say("chacha", "[开心]我剪，他贴。");
+    await say("xhb", "[生气]我贴得可好了！");
+    await say("chacha", "[脸红]……贴歪了三次。");
+    return say("xhb", "[撒娇]做好了再给你！现在不许偷看！");
+  }
+  S.pt.craft = 2;
+  await say("chacha", "[平静]还差一点点。用的是蓝格子的纸，和你的围兜一样。");
+  return say("xhb", "[开心]等你醒来就知道啦！");
+}
+
+async function farewell() {
+  busy = true;
+  $("#fade").classList.add("on"); await sleep(600);
+  S.party = false; MAPS.garden.walls.splice(MAPS.garden.walls.indexOf(MAHJONG), 1);
+  map = "garden"; me.map = "garden";
+  const spots = { me: [943, 540], huahua: [840, 470], yuanyuan: [800, 520], momo: [1050, 470], xiaomao: [1080, 525], nono: [1025, 585], xhb: [868, 580], chacha: [1062, 412] };
+  for (const [k, [x, y]] of Object.entries(spots)) Object.assign(E[k], { map: "garden", visible: true, x, y, dir: "up", moving: false });
+  E.huahua.dir = "right"; E.yuanyuan.dir = "right"; E.momo.dir = "left"; E.xiaomao.dir = "left"; E.chacha.dir = "left";
+  Object.values(E).forEach(e => { if (e !== me) face(e, me); });
+  night = .5;
+  $("#fade").classList.remove("on"); await sleep(500);
+  if (S.spoke) { await say("huahua", "[撒娇]玩得开心吗？"); await say("huahua", "[哭泣]天边又亮了一点点了……"); }
+  else {
+  S.spoke = true;
+  await say("huahua", "晨钰，你知道吗？");
+  await say("huahua", "[平静]你现在在好远好远的地方。阿根廷，地球的另一边。");
+  await say("huahua", "[平静]那边现在是春天吧？我们没办法挤进你的房间，给你点一根真的蜡烛。");
+  await say("huahua", "[脸红]所以只好趁你睡着，偷偷把你接过来一下。");
+  await say("momo", "[平静]……生日那天，还在工作。");
+  await say("yuanyuan", "[撒娇]那至少，梦里要过一个好好的生日。");
+  await say("chacha", "[开心]我们会一直在这里的。");
+  await say("xhb", "[大笑]对！院子也在，蛋糕也在，我们也在！");
+  await say("huahua", "不管你在哪儿，累了就闭上眼睛。我们一直都在。");
+  await say("huahua", "[哭泣]好啦……天快亮了，你要醒过来啦。");
+  }
+  const c = await choose(["我还想再待一会儿……", "嗯，我要回去见人类形态的你们了。"]);
+  if (c === 0) {
+    await say("huahua", "[大笑]那就再待一会儿！天亮之前，想去哪儿都可以。");
+    await say("nono", "[爱心眼]No！太好了！");
+    $("#fade").classList.add("on"); await sleep(500);
+    night = .2; startParty();
+    $("#fade").classList.remove("on"); await sleep(300);
+    return say(null, "院子里的每一个小家伙、每一朵花、每一棵树，都可以去打个招呼。想回去了，再到蛋糕旁边来。");
+  }
+  await say("nono", "[哭泣]No！先抱一下再走！");
+  const hug = { huahua: [885, 535], yuanyuan: [905, 590], xiaomao: [1000, 535], nono: [985, 592], momo: [943, 610], xhb: [865, 600], chacha: [1022, 600] };
+  await Promise.all(Object.entries(hug).map(([k, [x, y]]) => tweenTo(E[k], x, y, 700)));
+  Object.values(E).forEach(e => { if (e !== me) face(e, me); });
+  burst("heart", 18, me.x, me.y - 80);
+  await say(null, "毛茸茸的、暖暖的一团。");
+  await say("yuanyuan", "[撒娇]（小小声）想我们了，就再闭上眼睛。");
+  $("#flash").classList.add("on"); await sleep(1300);
+  night = 0; $("#hud").hidden = true;
+  await cg(3, []);
+  $("#flash").classList.remove("on"); await sleep(1000);
+  await say(null, "……你醒了。电脑屏幕还亮着。");
+  await say(null, "可是桌上，不知道什么时候，多了一个插着蜡烛的草莓蛋糕。");
+  await say(null, "头上还多了一顶小小的派对帽。");
+  if (S.pt && S.pt.craft) await say(null, "蓝格子的，边上有一点点贴歪了。");
+  await say(null, "你忍不住笑了起来。");
+  scene = "end";
+  $("#end").hidden = false;
+  idle("生日快乐，晨钰。");
+}
+
+/* 生日快乐歌：唱歌时先停背景音乐，用八音盒的音色弹一遍，歌词跟着每一句出来 */
+const HB = [ // [note, beats] per line
+  [["G4", .75], ["G4", .25], ["A4", 1], ["G4", 1], ["C5", 1], ["B4", 2]],
+  [["G4", .75], ["G4", .25], ["A4", 1], ["G4", 1], ["D5", 1], ["C5", 2]],
+  [["G4", .75], ["G4", .25], ["G5", 1], ["E5", 1], ["C5", 1], ["B4", 1], ["A4", 2]],
+  [["F5", .75], ["F5", .25], ["E5", 1], ["C5", 1], ["D5", 1], ["C5", 3]],
+];
+const HB_BASS = [["C3", "G2"], ["G2", "C3"], ["C3", "F2"], ["C3", "G2", "C3"]];
+function hz(n) { const i = { C: -9, D: -7, E: -5, F: -4, G: -2, A: 0, B: 2 }[n[0]]; return 440 * Math.pow(2, (i + (+n[1] - 4) * 12) / 12); }
+function musicBox(f, t, dur, v = .09) {
+  const ctx = actx; if (!ctx) return;
+  [[1, "sine", v], [2, "sine", v * .25], [3, "triangle", v * .08]].forEach(([m, type, gv]) => {
+    const o = ctx.createOscillator(), gn = ctx.createGain();
+    o.type = type; o.frequency.value = f * m;
+    gn.gain.setValueAtTime(0, t); gn.gain.linearRampToValueAtTime(gv * (+vol.value / 60 + .2), t + .01);
+    gn.gain.exponentialRampToValueAtTime(.0005, t + Math.max(.6, dur * 1.4));
+    o.connect(gn).connect(ctx.destination); o.start(t); o.stop(t + dur * 1.5 + .1);
+  });
+}
+async function sing() {
+  const lines = ["祝你生日快乐", "祝你生日快乐", "祝晨钰生日快乐", "祝你生日快乐～"];
+  Object.values(E).forEach(e => e.dance = true);
+  idle("♪");
+  bgmHold = true; bgm.pause();
+  audio(); const beat = .52;
+  let t = actx ? actx.currentTime + .3 : 0;
+  for (let li = 0; li < HB.length; li++) {
+    const lineStart = t;
+    HB[li].forEach(([n, b], k) => { musicBox(hz(n), t, b * beat); if (k === 0 || k === 2 || k === 5) { const bn = HB_BASS[li][k === 0 ? 0 : k === 2 ? 0 : 1] || "C3"; musicBox(hz(bn), t, 1.4, .05); } t += b * beat; });
+    t += beat * .5;
+    const wait = actx ? (lineStart - actx.currentTime) * 1000 : 0;
+    if (wait > 0) await sleep(wait);
+    $("#lyric").textContent = "♪ " + lines[li];
+  }
+  await sleep(actx ? (t - actx.currentTime) * 1000 + 300 : 3000);
+  $("#lyric").textContent = "";
+  Object.values(E).forEach(e => e.dance = false);
+  bgmHold = false; audio();
+}
+
+$("#again").addEventListener("click", () => location.reload());
+window.__game = { cam, S, E, ACT, PARTY, finale, farewell, __setBusy: v => { busy = v; }, get map() { return map; }, get scene() { return scene; }, get busy() { return busy; } };
+intro();
+</script>
