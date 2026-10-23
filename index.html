@@ -1565,7 +1565,7 @@ function musicBox(f, t, dur, v = .09) {
 }
 async function sing() {
   const lines = ["祝你生日快乐", "祝你生日快乐", "祝晨钰生日快乐", "祝你生日快乐～"];
-  Object.values(E).forEach(e => e.sit = true);
+  Object.values(E).forEach(e => e.dance = true);
   idle("♪");
   bgmHold = true; bgm.pause();
   audio(); const beat = .52;
@@ -1580,7 +1580,7 @@ async function sing() {
   }
   await sleep(actx ? (t - actx.currentTime) * 1000 + 300 : 3000);
   $("#lyric").textContent = "";
-  Object.values(E).forEach(e => e.sit = false);
+  Object.values(E).forEach(e => e.dance = false);
   bgmHold = false; audio();
 }
 
